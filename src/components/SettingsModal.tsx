@@ -60,7 +60,7 @@ export function SettingsModal({
 
   return (
     <div
-      className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-pine-950/55 p-4 backdrop-blur-[3px] sm:items-center"
+      className="fade-in fixed inset-0 z-50 flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-[3px] sm:items-center sm:pb-4 bg-pine-950/55"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

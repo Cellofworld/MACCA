@@ -285,6 +285,11 @@ export default function App() {
   useEffect(() => saveEntries(entries), [entries]);
   useEffect(() => saveProfile(profile), [profile]);
 
+  // на мобильных при смене вкладки возвращаемся к началу экрана
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  }, [view]);
+
   const sorted = useMemo(
     () => [...entries].sort((a, b) => a.date.localeCompare(b.date)),
     [entries]
@@ -481,7 +486,7 @@ export default function App() {
         {/* -------- мобильная шапка -------- */}
         <div className="lg:hidden">
           <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur">
-            <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2.5">
                 <LogoMark className="h-9 w-9" />
                 <div>
@@ -491,38 +496,95 @@ export default function App() {
                   <p className="mt-0.5 text-[10px] font-medium text-fog">дневник веса</p>
                 </div>
               </div>
-              <button
-                onClick={() => setSettingsOpen(true)}
-                aria-label="Параметры"
-                className="rounded-xl border border-line bg-cream p-2.5 text-fog transition hover:text-ink active:scale-90"
-              >
-                <Settings className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-1 px-4 pb-3">
-              {(
-                [
-                  ["overview", "Обзор", <LayoutGrid key="i1" className="h-3.5 w-3.5" />],
-                  ["history", "История", <HistoryIcon key="i2" className="h-3.5 w-3.5" />],
-                ] as [View, string, React.ReactNode][]
-              ).map(([v, label, icon]) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={`flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${
-                    view === v ? "bg-pine-900 text-lime shadow-card" : "bg-mint text-fog"
+              <div className="flex items-center gap-2">
+                <span
+                  className="flex items-center gap-1.5 rounded-xl border border-line bg-cream px-2.5 py-2"
+                  title={`Серия взвешиваний: ${stats.streak} ${
+                    stats.streak === 1 ? "день" : stats.streak < 5 ? "дня" : "дней"
                   }`}
                 >
-                  {icon}
-                  {label}
+                  <Flame className="h-4 w-4 text-amber" />
+                  <span className="tnum text-xs font-bold text-ink">{stats.streak}</span>
+                </span>
+                <button
+                  onClick={() => setSettingsOpen(true)}
+                  aria-label="Параметры"
+                  className="rounded-xl border border-line bg-cream p-2.5 text-fog transition hover:text-ink active:scale-90"
+                >
+                  <Settings className="h-4 w-4" />
                 </button>
-              ))}
+              </div>
             </div>
           </header>
         </div>
 
+        {/* -------- нижняя навигация (мобильные) -------- */}
+        <nav
+          aria-label="Основная навигация"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-cream/95 shadow-[0_-10px_30px_-18px_rgb(28_42_35/0.4)] backdrop-blur lg:hidden"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="mx-auto grid max-w-md grid-cols-3 items-end px-6 pt-2 pb-1.5">
+            <button
+              onClick={() => setView("overview")}
+              className="flex flex-col items-center gap-0.5 py-1 transition active:scale-90"
+            >
+              <span
+                className={`rounded-xl px-4 py-1 transition-colors ${
+                  view === "overview" ? "bg-pine-900 text-lime" : "text-fog"
+                }`}
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </span>
+              <span
+                className={`text-[10px] font-bold ${view === "overview" ? "text-ink" : "text-fog"}`}
+              >
+                Обзор
+              </span>
+            </button>
+
+            <div className="flex flex-col items-center">
+              <button
+                onClick={focusForm}
+                aria-label="Записать вес"
+                className="-mt-6 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-paper bg-pine-700 text-cream shadow-pop transition hover:bg-pine-800 active:scale-90"
+              >
+                <Plus className="h-6 w-6" strokeWidth={2.75} />
+              </button>
+              <span className="mt-0.5 text-[10px] font-bold text-pine-700">Записать</span>
+            </div>
+
+            <button
+              onClick={() => setView("history")}
+              className="flex flex-col items-center gap-0.5 py-1 transition active:scale-90"
+            >
+              <span
+                className={`relative rounded-xl px-4 py-1 transition-colors ${
+                  view === "history" ? "bg-pine-900 text-lime" : "text-fog"
+                }`}
+              >
+                <HistoryIcon className="h-5 w-5" />
+                {entries.length > 0 && (
+                  <span
+                    className={`tnum absolute -top-1.5 -right-0.5 rounded-md px-1 py-px text-[9px] font-bold ${
+                      view === "history" ? "bg-lime text-pine-950" : "bg-line text-fog"
+                    }`}
+                  >
+                    {entries.length}
+                  </span>
+                )}
+              </span>
+              <span
+                className={`text-[10px] font-bold ${view === "history" ? "text-ink" : "text-fog"}`}
+              >
+                История
+              </span>
+            </button>
+          </div>
+        </nav>
+
         {/* -------- контент -------- */}
-        <main className="px-4 pt-5 pb-14 md:px-6 lg:px-0 lg:pt-8">
+        <main className="px-4 pt-4 pb-32 sm:px-6 sm:pt-5 lg:px-0 lg:pt-8 lg:pb-14">
           {view === "overview" ? (
             <div key="overview" className="space-y-5">
               {/* герой */}
@@ -543,7 +605,7 @@ export default function App() {
                         <div className="mt-3 flex items-baseline gap-3">
                           <AnimatedNumber
                             value={stats.latest.weight}
-                            className="font-display text-6xl font-bold tracking-tight md:text-[84px] md:leading-none"
+                            className="font-display text-5xl leading-none font-bold tracking-tight sm:text-6xl md:text-7xl lg:text-[84px]"
                           />
                           <span className="font-display text-xl font-medium text-cream/50">кг</span>
                         </div>
@@ -575,7 +637,7 @@ export default function App() {
                       </>
                     ) : (
                       <div>
-                        <p className="mt-3 font-display text-6xl font-bold text-cream/25 md:text-[80px]">
+                        <p className="mt-3 font-display text-5xl leading-none font-bold text-cream/25 sm:text-6xl md:text-7xl lg:text-[80px]">
                           ——,——
                         </p>
                         <p className="mt-4 max-w-sm text-sm leading-relaxed text-cream/60">

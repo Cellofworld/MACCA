@@ -32,7 +32,7 @@ export function ToastHost({
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[min(94vw,380px)] flex-col gap-2"
+      className="pointer-events-none fixed bottom-[calc(96px+env(safe-area-inset-bottom))] left-4 right-4 z-[60] flex flex-col gap-2 sm:left-auto sm:bottom-6 sm:right-6 sm:w-[380px]"
     >
       {toasts.map((t) => {
         const s = KIND_STYLE[t.kind];

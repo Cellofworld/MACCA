@@ -70,7 +70,7 @@ export function EntryForm({
   };
 
   const stepBtn =
-    "flex h-9 min-w-11 items-center justify-center rounded-lg border border-line bg-cream px-2 text-sm font-bold text-pine-700 transition hover:border-pine-600/50 hover:bg-mint active:scale-90";
+    "flex h-9 w-10 items-center justify-center rounded-lg border border-line bg-cream px-0 text-xs font-bold text-pine-700 transition hover:border-pine-600/50 hover:bg-mint active:scale-90 sm:w-auto sm:min-w-11 sm:px-2 sm:text-sm";
 
   return (
     <section
@@ -95,7 +95,7 @@ export function EntryForm({
             Вес, кг
           </label>
 
-          <div className="mt-2 flex items-center justify-between gap-1.5">
+          <div className="mt-2 flex items-center justify-between gap-1 sm:gap-1.5">
             <button type="button" onClick={() => nudge(-1)} className={stepBtn} aria-label="Минус килограмм">
               −1
             </button>
@@ -115,7 +115,7 @@ export function EntryForm({
                   setError(null);
                 }}
                 placeholder="70,0"
-                className="tnum w-full rounded-xl border border-line bg-paper/70 py-2.5 text-center font-display text-3xl font-bold text-ink transition focus:border-pine-600 focus:bg-cream focus:outline-none"
+                className="tnum w-full min-w-0 rounded-xl border border-line bg-paper/70 py-2 text-center font-display text-2xl font-bold text-ink transition focus:border-pine-600 focus:bg-cream focus:outline-none sm:py-2.5 sm:text-3xl"
               />
             </div>
 

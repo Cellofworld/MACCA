@@ -51,17 +51,19 @@ function Row({
   };
 
   return (
-    <li className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-mint/50 sm:gap-4 sm:px-5">
-      <div className="w-11 shrink-0">
+    <li className="group px-4 py-3 transition-colors hover:bg-mint/50 sm:px-5">
+      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="w-9 shrink-0 sm:w-11">
         <p className="tnum font-display text-lg leading-tight font-semibold text-ink">
           {dayNum(entry.date)}
         </p>
         <p className="text-[11px] font-medium text-fog">{fmtWeekday(entry.date)}</p>
       </div>
 
-      <p className="min-w-0 flex-1 truncate text-sm text-fog">
+      <p className="hidden min-w-0 flex-1 truncate text-sm text-fog sm:block">
         {entry.note ? entry.note : <span className="text-fog/45">без заметки</span>}
       </p>
+      <span className="min-w-0 flex-1 sm:hidden" />
 
       <DeltaChip delta={delta} />
 
@@ -100,29 +102,34 @@ function Row({
           </button>
         </span>
       ) : (
-        <p className="tnum w-[76px] shrink-0 text-right font-display text-base font-semibold text-ink">
+        <p className="tnum w-[68px] shrink-0 text-right font-display text-base font-semibold text-ink sm:w-[76px]">
           {fmtNum(entry.weight)}
           <span className="ml-1 text-[11px] font-medium text-fog">кг</span>
         </p>
       )}
 
       {!editing && (
-        <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+        <span className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
           <button
             onClick={startEdit}
             aria-label="Изменить запись"
-            className="rounded-lg p-1.5 text-fog transition hover:bg-cream hover:text-pine-700 active:scale-90"
+            className="rounded-lg p-1 text-fog transition hover:bg-cream hover:text-pine-700 active:scale-90 sm:p-1.5"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => onDelete(entry)}
             aria-label="Удалить запись"
-            className="rounded-lg p-1.5 text-fog transition hover:bg-cream hover:text-coral active:scale-90"
+            className="rounded-lg p-1 text-fog transition hover:bg-cream hover:text-coral active:scale-90 sm:p-1.5"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </span>
+      )}
+      </div>
+
+      {!editing && entry.note && (
+        <p className="mt-1 truncate pl-11 text-xs text-fog sm:hidden">{entry.note}</p>
       )}
     </li>
   );
