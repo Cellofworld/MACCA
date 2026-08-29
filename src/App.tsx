@@ -584,7 +584,7 @@ export default function App() {
         </nav>
 
         {/* -------- контент -------- */}
-        <main className="px-4 pt-4 pb-32 sm:px-6 sm:pt-5 lg:px-0 lg:pt-8 lg:pb-14">
+        <main className="min-w-0 px-4 pt-4 pb-32 sm:px-6 sm:pt-5 lg:px-0 lg:pt-8 lg:pb-14">
           {view === "overview" ? (
             <div key="overview" className="space-y-5">
               {/* герой */}
@@ -713,7 +713,7 @@ export default function App() {
 
               {/* график + форма + аналитика */}
               <div className="grid gap-5 lg:grid-cols-3">
-                <div className="lg:col-span-2">
+                <div className="min-w-0 lg:col-span-2">
                   <WeightChart
                     entries={sorted}
                     target={profile.target}
@@ -722,7 +722,7 @@ export default function App() {
                     onDemo={handleDemo}
                   />
                 </div>
-                <div className="space-y-5">
+                <div className="min-w-0 space-y-5">
                   <EntryForm
                     initialWeight={stats.latest?.weight ?? null}
                     focusTick={focusTick}

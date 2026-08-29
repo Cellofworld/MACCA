@@ -65,7 +65,8 @@ export function WeightChart({
   onRangeChange: (r: RangeKey) => void;
   onDemo: () => void;
 }) {
-  const [ref, width] = useMeasure<HTMLDivElement>();
+  const [ref, rawWidth] = useMeasure<HTMLDivElement>();
+  const width = Math.floor(rawWidth);
   const [hover, setHover] = useState<number | null>(null);
 
   const visible = useMemo(() => {
@@ -147,7 +148,7 @@ export function WeightChart({
   const chartKey = `${range}-${visible.length}-${visible[visible.length - 1]?.date ?? ""}`;
 
   return (
-    <section className="reveal d1 rounded-xl border border-line bg-cream shadow-card">
+    <section className="reveal d1 overflow-hidden rounded-xl border border-line bg-cream shadow-card">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
         <div>
           <h2 className="font-display text-sm font-semibold tracking-wide text-ink">
@@ -181,13 +182,13 @@ export function WeightChart({
         </div>
       </header>
 
-      <div ref={ref} className="relative px-2 pt-2 pb-1">
+      <div ref={ref} className="relative min-w-0 px-2 pt-2 pb-1">
         <div className="relative h-[300px]">
           {geom ? (
             <svg
               width={width}
               height={H}
-              className="block"
+              className="block max-w-full"
               onPointerMove={onMove}
               onPointerLeave={() => setHover(null)}
             >
