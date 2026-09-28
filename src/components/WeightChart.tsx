@@ -48,7 +48,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-const H = 300;
+const H = 260;
 const PAD = { l: 46, r: 18, t: 18, b: 32 };
 
 export function WeightChart({
@@ -76,7 +76,7 @@ export function WeightChart({
   }, [entries, range]);
 
   const geom = useMemo(() => {
-    if (visible.length === 0 || width < 40) return null;
+    if (visible.length === 0 || width < 200) return null;
     const ws = visible.map((e) => e.weight);
     let min = Math.min(...ws);
     let max = Math.max(...ws);
@@ -109,10 +109,15 @@ export function WeightChart({
     const xLabels =
       t1 === t0
         ? [{ x: PAD.l + iw / 2, label: fmtDay(visible[0].date) }]
-        : [0, 1, 2, 3].map((i) => ({
-            x: PAD.l + (iw * i) / 3,
-            label: fmtDay(toISO(new Date(t0 + ((t1 - t0) * i) / 3))),
-          }));
+        : width < 500
+          ? [0, 2].map((i) => ({
+              x: PAD.l + (iw * i) / 2,
+              label: fmtDay(toISO(new Date(t0 + ((t1 - t0) * i) / 2))),
+            }))
+          : [0, 1, 2, 3].map((i) => ({
+              x: PAD.l + (iw * i) / 3,
+              label: fmtDay(toISO(new Date(t0 + ((t1 - t0) * i) / 3))),
+            }));
 
     return { pts, y, ticks, yDigits, xLabels, iw, ih };
   }, [visible, width, target]);
@@ -149,12 +154,12 @@ export function WeightChart({
 
   return (
     <section className="reveal d1 overflow-hidden rounded-xl border border-line bg-cream shadow-card">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-        <div>
+      <header className="flex flex-col gap-3 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+        <div className="min-w-0">
           <h2 className="font-display text-sm font-semibold tracking-wide text-ink">
             Динамика веса
           </h2>
-          <p className="mt-0.5 text-xs text-fog">
+          <p className="mt-0.5 truncate text-xs text-fog">
             {visible.length > 0
               ? `${visible.length} ${plural(visible.length, "запись", "записи", "записей")} · ${
                   fmtDay(visible[0].date)
@@ -162,7 +167,7 @@ export function WeightChart({
               : "нет записей в периоде"}
           </p>
         </div>
-        <div className="flex rounded-lg border border-line bg-paper p-1">
+        <div className="flex shrink-0 rounded-lg border border-line bg-paper p-1">
           {RANGES.map((r) => (
             <button
               key={r.key}
@@ -170,7 +175,7 @@ export function WeightChart({
                 onRangeChange(r.key);
                 setHover(null);
               }}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${
+              className={`rounded-md px-2 py-1 text-[11px] font-bold transition-all sm:px-3 sm:py-1.5 sm:text-xs ${
                 range === r.key
                   ? "bg-pine-900 text-lime shadow-card"
                   : "text-fog hover:text-ink"
@@ -183,7 +188,7 @@ export function WeightChart({
       </header>
 
       <div ref={ref} className="relative min-w-0 px-2 pt-2 pb-1">
-        <div className="relative h-[300px]">
+        <div className="relative h-[260px] sm:h-[300px]">
           {geom ? (
             <svg
               width={width}
@@ -216,7 +221,7 @@ export function WeightChart({
                     textAnchor="end"
                     fontSize="11"
                     fill="var(--color-fog)"
-                    className="tnum"
+                    className="tnum select-none"
                   >
                     {fmtNum(t, geom.yDigits)}
                   </text>
@@ -232,6 +237,7 @@ export function WeightChart({
                   textAnchor={i === 0 ? "start" : i === geom.xLabels.length - 1 ? "end" : "middle"}
                   fontSize="11"
                   fill="var(--color-fog)"
+                  className="select-none"
                 >
                   {l.label}
                 </text>
@@ -256,7 +262,7 @@ export function WeightChart({
                     fontSize="11"
                     fontWeight="600"
                     fill="var(--color-lime-deep)"
-                    className="tnum"
+                    className="tnum select-none"
                   >
                     цель · {fmtNum(target, 0)} кг
                   </text>
@@ -330,14 +336,14 @@ export function WeightChart({
             <div
               className="pointer-events-none absolute z-10 -translate-x-1/2 rounded-lg bg-pine-950 px-3 py-2 text-cream shadow-pop"
               style={{
-                left: Math.max(80, Math.min(width - 80, hoverPt.x)),
-                top: Math.max(4, hoverPt.y - 64),
+                left: Math.max(90, Math.min(width - 90, hoverPt.x)),
+                top: Math.max(4, hoverPt.y - 68),
               }}
             >
               <p className="tnum font-display text-sm font-semibold">
                 {fmtNum(hoverEntry.weight)} кг
               </p>
-              <p className="mt-0.5 whitespace-nowrap text-[11px] text-cream/60">
+              <p className="mt-0.5 text-[11px] text-cream/60">
                 {fmtWeekday(hoverEntry.date)}, {fmtFull(hoverEntry.date)}
               </p>
             </div>

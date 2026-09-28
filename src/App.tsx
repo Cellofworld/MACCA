@@ -45,6 +45,9 @@ import { WeightChart } from "./components/WeightChart";
 import { EntryForm } from "./components/EntryForm";
 import { HistoryList } from "./components/HistoryList";
 import { SettingsModal } from "./components/SettingsModal";
+import { Recommendations } from "./components/Recommendations";
+import { DietMenu } from "./components/DietMenu";
+import { Exercises } from "./components/Exercises";
 
 /* ---------- фирменный знак ---------- */
 
@@ -97,8 +100,10 @@ function HeroChip({
   const toneCls =
     tone === "good" ? "text-lime" : tone === "bad" ? "text-[#ff9d80]" : "text-cream/85";
   return (
-    <div className="rounded-xl border border-cream/10 bg-cream/5 px-3.5 py-2 transition-colors hover:border-cream/25">
-      <p className="text-[10px] font-bold tracking-[0.16em] text-cream/45 uppercase">{label}</p>
+    <div className="rounded-xl border border-cream/10 bg-cream/5 px-3 py-2 transition-colors hover:border-cream/25">
+      <p className="text-[10px] font-bold tracking-[0.16em] text-cream/45 uppercase">
+        {label}
+      </p>
       <p className={`tnum mt-0.5 text-sm font-bold ${toneCls}`}>{value}</p>
     </div>
   );
@@ -177,7 +182,7 @@ function AnalysisCard({
       label: "ИМТ",
       value:
         stats.bmi != null ? (
-          <span className="flex items-center gap-2">
+          <span className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-2">
             <span className="tnum font-display text-base font-bold text-ink">
               {fmtNum(stats.bmi.value)}
             </span>
@@ -255,7 +260,7 @@ function AnalysisCard({
       </header>
       <ul className="divide-y divide-line px-5">
         {rows.map((r) => (
-          <li key={r.label} className="flex items-center gap-3 py-3.5">
+          <li key={r.label} className="flex items-center gap-2 py-3.5 sm:gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-mint text-pine-700">
               {r.icon}
             </span>
@@ -670,7 +675,7 @@ export default function App() {
                           />
                           <span className="font-display text-xl font-medium text-cream/50">кг</span>
                         </div>
-                        <div className="mt-6 flex flex-wrap gap-2">
+                        <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3">
                           <HeroChip
                             label="К прошлому разу"
                             value={
@@ -724,8 +729,8 @@ export default function App() {
                       </p>
                     ) : profile.target != null && stats.progress != null ? (
                       <>
-                        <GoalRing progress={stats.progress}>
-                          <span className="tnum font-display text-3xl font-bold text-lime">
+                        <GoalRing progress={stats.progress} size={120} stroke={10}>
+                          <span className="tnum font-display text-2xl font-bold text-lime sm:text-3xl">
                             {Math.round(stats.progress * 100)}%
                           </span>
                           <span className="text-[10px] font-bold tracking-[0.16em] text-cream/50 uppercase">
@@ -821,6 +826,17 @@ export default function App() {
                   />
                 </section>
               )}
+
+              {/* рекомендации, меню и упражнения */}
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Recommendations
+                  bmi={stats.bmi?.value ?? null}
+                  weeklyRate={stats.weeklyRate}
+                />
+                <DietMenu />
+              </div>
+
+              <Exercises />
             </div>
           ) : (
             /* -------- история -------- */

@@ -95,12 +95,12 @@ export function EntryForm({
             Вес, кг
           </label>
 
-          <div className="mt-2 flex items-center justify-between gap-1 sm:gap-1.5">
+          <div className="mt-2 flex items-center justify-between gap-0.5 sm:gap-1.5">
             <button type="button" onClick={() => nudge(-1)} className={stepBtn} aria-label="Минус килограмм">
               −1
             </button>
             <button type="button" onClick={() => nudge(-0.1)} className={stepBtn} aria-label="Минус 100 граммов">
-              <Minus className="h-4 w-4" />
+              <Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
 
             <div className="relative flex-1 text-center">
@@ -120,14 +120,14 @@ export function EntryForm({
             </div>
 
             <button type="button" onClick={() => nudge(0.1)} className={stepBtn} aria-label="Плюс 100 граммов">
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
             <button type="button" onClick={() => nudge(1)} className={stepBtn} aria-label="Плюс килограмм">
               +1
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="date-input"
