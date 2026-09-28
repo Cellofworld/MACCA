@@ -95,6 +95,7 @@ export function EntryForm({
             Вес, кг
           </label>
 
+          {/* Кнопки корректировки веса */}
           <div className="mt-2 flex items-center justify-between gap-1 sm:gap-1.5">
             <button type="button" onClick={() => nudge(-1)} className={stepBtn} aria-label="Минус килограмм">
               −1
@@ -115,7 +116,7 @@ export function EntryForm({
                   setError(null);
                 }}
                 placeholder="70,0"
-                className="tnum w-full min-w-0 rounded-xl border border-line bg-paper/70 py-2 text-center font-display text-2xl font-bold text-ink transition focus:border-pine-600 focus:bg-cream focus:outline-none sm:py-2.5 sm:text-3xl"
+                className="tnum w-full min-w-0 rounded-xl border border-line bg-paper/70 py-2.5 text-center font-display text-2xl font-bold text-ink transition focus:border-pine-600 focus:bg-cream focus:outline-none sm:text-3xl"
               />
             </div>
 
@@ -127,7 +128,7 @@ export function EntryForm({
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="date-input"

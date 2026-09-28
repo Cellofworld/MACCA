@@ -45,6 +45,9 @@ import { WeightChart } from "./components/WeightChart";
 import { EntryForm } from "./components/EntryForm";
 import { HistoryList } from "./components/HistoryList";
 import { SettingsModal } from "./components/SettingsModal";
+import { Recommendations } from "./components/Recommendations";
+import { WeeklyMenu } from "./components/WeeklyMenu";
+import { Exercises } from "./components/Exercises";
 
 /* ---------- фирменный знак ---------- */
 
@@ -97,8 +100,10 @@ function HeroChip({
   const toneCls =
     tone === "good" ? "text-lime" : tone === "bad" ? "text-[#ff9d80]" : "text-cream/85";
   return (
-    <div className="rounded-xl border border-cream/10 bg-cream/5 px-3.5 py-2 transition-colors hover:border-cream/25">
-      <p className="text-[10px] font-bold tracking-[0.16em] text-cream/45 uppercase">{label}</p>
+    <div className="rounded-xl border border-cream/10 bg-cream/5 px-3 py-2 transition-colors hover:border-cream/25">
+      <p className="text-[10px] font-bold tracking-[0.16em] text-cream/45 uppercase">
+        {label}
+      </p>
       <p className={`tnum mt-0.5 text-sm font-bold ${toneCls}`}>{value}</p>
     </div>
   );
@@ -177,7 +182,7 @@ function AnalysisCard({
       label: "ИМТ",
       value:
         stats.bmi != null ? (
-          <span className="flex items-center gap-2">
+          <span className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-2">
             <span className="tnum font-display text-base font-bold text-ink">
               {fmtNum(stats.bmi.value)}
             </span>
@@ -255,7 +260,7 @@ function AnalysisCard({
       </header>
       <ul className="divide-y divide-line px-5">
         {rows.map((r) => (
-          <li key={r.label} className="flex items-center gap-3 py-3.5">
+          <li key={r.label} className="flex items-center gap-2 py-3.5 sm:gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-mint text-pine-700">
               {r.icon}
             </span>
@@ -670,7 +675,7 @@ export default function App() {
                           />
                           <span className="font-display text-xl font-medium text-cream/50">кг</span>
                         </div>
-                        <div className="mt-6 flex flex-wrap gap-2">
+                        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
                           <HeroChip
                             label="К прошлому разу"
                             value={
@@ -694,6 +699,32 @@ export default function App() {
                             }
                             tone={deltaTone(stats.weeklyRate)}
                           />
+                          <HeroChip
+                            label="Серия дней"
+                            value={`${stats.streak} ${
+                              stats.streak === 1 ? "день" : stats.streak < 5 ? "дня" : "дней"
+                            }`}
+                            tone={stats.streak > 0 ? "good" : "neutral"}
+                          />
+                        </div>
+
+                        {/* Дополнительная информация */}
+                        <div className="mt-4 flex flex-wrap gap-3 text-xs text-cream/70">
+                          {stats.bmi && (
+                            <span className="rounded-lg bg-cream/10 px-3 py-1.5">
+                              ИМТ: <strong className="text-cream">{fmtNum(stats.bmi.value)}</strong>
+                            </span>
+                          )}
+                          {stats.min != null && stats.max != null && (
+                            <span className="rounded-lg bg-cream/10 px-3 py-1.5">
+                              Диапазон: <strong className="text-cream">{fmtNum(stats.min)}-{fmtNum(stats.max)} кг</strong>
+                            </span>
+                          )}
+                          {stats.etaISO && (
+                            <span className="rounded-lg bg-cream/10 px-3 py-1.5">
+                              Цель: <strong className="text-cream">{fmtDay(stats.etaISO)}</strong>
+                            </span>
+                          )}
                         </div>
                       </>
                     ) : (
@@ -724,8 +755,8 @@ export default function App() {
                       </p>
                     ) : profile.target != null && stats.progress != null ? (
                       <>
-                        <GoalRing progress={stats.progress}>
-                          <span className="tnum font-display text-3xl font-bold text-lime">
+                        <GoalRing progress={stats.progress} size={120} stroke={10}>
+                          <span className="tnum font-display text-2xl font-bold text-lime sm:text-3xl">
                             {Math.round(stats.progress * 100)}%
                           </span>
                           <span className="text-[10px] font-bold tracking-[0.16em] text-cream/50 uppercase">
@@ -821,6 +852,78 @@ export default function App() {
                   />
                 </section>
               )}
+
+              {/* рекомендации, меню и упражнения */}
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Recommendations
+                  bmi={stats.bmi?.value ?? null}
+                  weeklyRate={stats.weeklyRate}
+                />
+                <WeeklyMenu
+                  weight={stats.latest?.weight ?? 70}
+                  heightCm={profile.heightCm}
+                  age={profile.age}
+                  sex={profile.sex}
+                  target={profile.target}
+                />
+              </div>
+
+              <Exercises />
+
+              {/* Советы по здоровью */}
+              <section className="reveal rounded-xl border border-line bg-cream shadow-card">
+                <header className="border-b border-line px-5 py-4">
+                  <h2 className="font-display text-sm font-semibold tracking-wide text-ink">
+                    Полезные привычки
+                  </h2>
+                  <p className="mt-0.5 text-xs text-fog">
+                    Маленькие шаги к большим результатам
+                  </p>
+                </header>
+                <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    {
+                      emoji: "💧",
+                      title: "Пейте воду",
+                      desc: "1.5-2 литра в день. Стакан воды за 30 минут до еды ускоряет метаболизм на 30%.",
+                    },
+                    {
+                      emoji: "🌙",
+                      title: "Спите 7-9 часов",
+                      desc: "Недосып повышает уровень грелина — гормона голода. Ложитесь до 23:00.",
+                    },
+                    {
+                      emoji: "🚶",
+                      title: "10 000 шагов",
+                      desc: "Используйте лестницу вместо лифта. Паркуйтесь дальше. Гуляйте во время обеденного перерыва.",
+                    },
+                    {
+                      emoji: "🥗",
+                      title: "Больше овощей",
+                      desc: "Заполняйте половину тарелки овощами. Они дают объём и клетчатку при минимуме калорий.",
+                    },
+                    {
+                      emoji: "⏰",
+                      title: "Режим питания",
+                      desc: "Ешьте в одно и то же время. Избегайте перекусов между приёмами пищи.",
+                    },
+                    {
+                      emoji: "🧘",
+                      title: "Управляйте стрессом",
+                      desc: "Стресс повышает кортизол, который способствует накоплению жира. Медитируйте, гуляйте, дышите.",
+                    },
+                  ].map((tip) => (
+                    <div
+                      key={tip.title}
+                      className="rounded-lg border border-line/50 bg-paper/50 p-4 transition-colors hover:border-line hover:bg-paper"
+                    >
+                      <div className="mb-2 text-2xl">{tip.emoji}</div>
+                      <p className="text-sm font-bold text-ink">{tip.title}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-fog">{tip.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           ) : (
             /* -------- история -------- */
