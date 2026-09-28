@@ -46,7 +46,7 @@ import { EntryForm } from "./components/EntryForm";
 import { HistoryList } from "./components/HistoryList";
 import { SettingsModal } from "./components/SettingsModal";
 import { Recommendations } from "./components/Recommendations";
-import { DietMenu } from "./components/DietMenu";
+import { WeeklyMenu } from "./components/WeeklyMenu";
 import { Exercises } from "./components/Exercises";
 
 /* ---------- фирменный знак ---------- */
@@ -833,7 +833,15 @@ export default function App() {
                   bmi={stats.bmi?.value ?? null}
                   weeklyRate={stats.weeklyRate}
                 />
-                <DietMenu />
+                {stats.latest && (
+                  <WeeklyMenu
+                    weight={stats.latest.weight}
+                    heightCm={profile.heightCm}
+                    age={profile.age}
+                    sex={profile.sex}
+                    target={profile.target}
+                  />
+                )}
               </div>
 
               <Exercises />

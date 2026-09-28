@@ -95,36 +95,60 @@ export function EntryForm({
             Вес, кг
           </label>
 
-          <div className="mt-2 flex items-center justify-between gap-0.5 sm:gap-1.5">
-            <button type="button" onClick={() => nudge(-1)} className={stepBtn} aria-label="Минус килограмм">
-              −1
-            </button>
-            <button type="button" onClick={() => nudge(-0.1)} className={stepBtn} aria-label="Минус 100 граммов">
-              <Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </button>
-
-            <div className="relative flex-1 text-center">
-              <input
-                id="weight-input"
-                ref={inputRef}
-                inputMode="decimal"
-                autoComplete="off"
-                value={weight}
-                onChange={(e) => {
-                  setWeight(e.target.value.replace(/[^\d.,]/g, ""));
-                  setError(null);
-                }}
-                placeholder="70,0"
-                className="tnum w-full min-w-0 rounded-xl border border-line bg-paper/70 py-2 text-center font-display text-2xl font-bold text-ink transition focus:border-pine-600 focus:bg-cream focus:outline-none sm:py-2.5 sm:text-3xl"
-              />
+          {/* На мобильных: две строки — сверху ±1 кг, снизу ±0.1 + поле ввода */}
+          <div className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-1.5">
+            {/* Верхний ряд: −1 и +1 (только на мобильных) */}
+            <div className="flex items-center justify-between gap-1.5 sm:hidden">
+              <button type="button" onClick={() => nudge(-1)} className={stepBtn} aria-label="Минус килограмм">
+                −1 кг
+              </button>
+              <button type="button" onClick={() => nudge(1)} className={stepBtn} aria-label="Плюс килограмм">
+                +1 кг
+              </button>
             </div>
 
-            <button type="button" onClick={() => nudge(0.1)} className={stepBtn} aria-label="Плюс 100 граммов">
-              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </button>
-            <button type="button" onClick={() => nudge(1)} className={stepBtn} aria-label="Плюс килограмм">
-              +1
-            </button>
+            {/* Нижний ряд: ±0.1 + поле ввода */}
+            <div className="flex items-center justify-between gap-1 sm:flex-1 sm:gap-1.5">
+              <button
+                type="button"
+                onClick={() => nudge(-0.1)}
+                className={`${stepBtn} hidden sm:flex`}
+                aria-label="Минус килограмм"
+              >
+                −1
+              </button>
+              <button type="button" onClick={() => nudge(-0.1)} className={`${stepBtn} sm:hidden`} aria-label="Минус 100 граммов">
+                <Minus className="h-4 w-4" />
+              </button>
+
+              <div className="relative flex-1 text-center">
+                <input
+                  id="weight-input"
+                  ref={inputRef}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={weight}
+                  onChange={(e) => {
+                    setWeight(e.target.value.replace(/[^\d.,]/g, ""));
+                    setError(null);
+                  }}
+                  placeholder="70,0"
+                  className="tnum w-full min-w-0 rounded-xl border border-line bg-paper/70 py-2.5 text-center font-display text-2xl font-bold text-ink transition focus:border-pine-600 focus:bg-cream focus:outline-none sm:py-2.5 sm:text-3xl"
+                />
+              </div>
+
+              <button type="button" onClick={() => nudge(0.1)} className={stepBtn} aria-label="Плюс 100 граммов">
+                <Plus className="h-4 w-4 sm:h-4 sm:w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => nudge(1)}
+                className={`${stepBtn} hidden sm:flex`}
+                aria-label="Плюс килограмм"
+              >
+                +1
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
