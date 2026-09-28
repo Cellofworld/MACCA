@@ -1,5 +1,4 @@
 import type { Profile, WeightEntry } from "./types";
-import { createSupabaseClient, getSupabaseConfig, isSupabaseConfigured } from "./supabase";
 import {
   defaultProfile,
   loadEntries as loadLocalEntries,
@@ -8,236 +7,160 @@ import {
   saveProfile as saveLocalProfile,
 } from "./store";
 
-/* ---------- SQL для инициализации ---------- */
+// API_BASE_URL можно переопределить через Vite env
+const API_BASE = (import.meta as any).env?.VITE_API_URL || "";
 
-export const SCHEMA_SQL = `-- Таблица записей веса
-create table if not exists public.weight_entries (
-  id uuid primary key default gen_random_uuid(),
-  date date not null unique,
-  weight numeric(5,2) not null check (weight > 0 and weight < 500),
-  note text,
-  created_at timestamptz default now()
-);
-
--- Профиль (одна строка)
-create table if not exists public.profile (
-  id text primary key default 'main' check (id = 'main'),
-  height_cm integer not null check (height_cm > 0 and height_cm < 300),
-  age integer not null check (age > 0 and age < 200),
-  sex text not null check (sex in ('female', 'male')),
-  target numeric(5,2)
-);
-
--- Начальная строка профиля
-insert into public.profile (id, height_cm, age, sex, target)
-values ('main', 170, 30, 'female', null)
-on conflict (id) do nothing;
-
--- RLS: разрешаем всё для anon-ключа (для демо)
--- В продакшене настройте политики по пользователю
-alter table public.weight_entries enable row level security;
-alter table public.profile enable row level security;
-
-drop policy if exists "allow all entries" on public.weight_entries;
-drop policy if exists "allow all profile" on public.profile;
-
-create policy "allow all entries" on public.weight_entries
-  for all using (true) with check (true);
-
-create policy "allow all profile" on public.profile
-  for all using (true) with check (true);
-
--- Индексы
-create index if not exists idx_entries_date on public.weight_entries(date);
-`;
-
-/* ---------- типы строк БД ---------- */
-
-interface DbEntry {
-  id: string;
-  date: string;
-  weight: number;
-  note: string | null;
-  created_at?: string;
+async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${res.status}: ${text || res.statusText}`);
+  }
+  return res.json();
 }
 
-interface DbProfile {
-  id: string;
-  height_cm: number;
-  age: number;
-  sex: "female" | "male";
-  target: number | null;
-}
-
-/* ---------- helpers ---------- */
-
-function toEntry(row: DbEntry): WeightEntry {
-  return {
-    id: row.id,
-    date: row.date,
-    weight: Number(row.weight),
-    note: row.note || undefined,
-  };
-}
-
-function toProfile(row: DbProfile): Profile {
-  return {
-    heightCm: row.height_cm,
-    age: row.age,
-    sex: row.sex,
-    target: row.target != null ? Number(row.target) : null,
-  };
-}
-
-/* ---------- CRUD ---------- */
+// ========== Записи ==========
 
 export async function loadEntries(): Promise<WeightEntry[]> {
-  if (!isSupabaseConfigured()) return loadLocalEntries();
-
-  const { url, key } = getSupabaseConfig();
-  const client = createSupabaseClient(url, key);
-  const { data, error } = await client
-    .from("weight_entries")
-    .select("*")
-    .order("date", { ascending: true });
-
-  if (error) {
-    console.error("loadEntries error:", error);
+  try {
+    const rows = await apiRequest<
+      { id: string; date: string; weight: number; note: string | null }[]
+    >("/api/entries");
+    return rows.map((r) => ({
+      id: r.id,
+      date: r.date,
+      weight: Number(r.weight),
+      note: r.note || undefined,
+    }));
+  } catch (err) {
+    console.warn("API недоступен, использую localStorage:", err);
     return loadLocalEntries();
   }
-
-  return (data as DbEntry[]).map(toEntry);
 }
 
 export async function saveEntries(entries: WeightEntry[]): Promise<void> {
-  // В Supabase мы не храним весь массив — только отдельные записи.
-  // Эта функция вызывается при каждом изменении, но мы не хотим перезаписывать всё.
-  // Поэтому здесь просто синхронизируем с localStorage как fallback.
+  // Локальный кэш на случай отключения API
   saveLocalEntries(entries);
 }
 
 export async function upsertEntry(entry: WeightEntry): Promise<void> {
-  if (!isSupabaseConfigured()) {
-    // fallback: сохраняем в localStorage
+  try {
+    await apiRequest("/api/entries", {
+      method: "POST",
+      body: JSON.stringify({
+        id: entry.id,
+        date: entry.date,
+        weight: entry.weight,
+        note: entry.note || null,
+      }),
+    });
+    // Обновляем локальный кэш
     const current = loadLocalEntries();
     const filtered = current.filter((e) => e.date !== entry.date);
     saveLocalEntries([...filtered, entry].sort((a, b) => a.date.localeCompare(b.date)));
-    return;
-  }
-
-  const { url, key } = getSupabaseConfig();
-  const client = createSupabaseClient(url, key);
-
-  const { error } = await client.from("weight_entries").upsert(
-    {
-      id: entry.id,
-      date: entry.date,
-      weight: entry.weight,
-      note: entry.note || null,
-    },
-    { onConflict: "date" }
-  );
-
-  if (error) {
-    console.error("upsertEntry error:", error);
-    throw error;
+  } catch (err) {
+    console.error("upsertEntry error:", err);
+    // Fallback на localStorage
+    const current = loadLocalEntries();
+    const filtered = current.filter((e) => e.date !== entry.date);
+    saveLocalEntries([...filtered, entry].sort((a, b) => a.date.localeCompare(b.date)));
+    throw err;
   }
 }
 
 export async function deleteEntry(id: string): Promise<void> {
-  if (!isSupabaseConfigured()) {
+  try {
+    await apiRequest(`/api/entries/${id}`, { method: "DELETE" });
     const current = loadLocalEntries();
     saveLocalEntries(current.filter((e) => e.id !== id));
-    return;
-  }
-
-  const { url, key } = getSupabaseConfig();
-  const client = createSupabaseClient(url, key);
-
-  const { error } = await client.from("weight_entries").delete().eq("id", id);
-
-  if (error) {
-    console.error("deleteEntry error:", error);
-    throw error;
+  } catch (err) {
+    console.error("deleteEntry error:", err);
+    const current = loadLocalEntries();
+    saveLocalEntries(current.filter((e) => e.id !== id));
+    throw err;
   }
 }
 
 export async function updateEntryWeight(id: string, weight: number): Promise<void> {
-  if (!isSupabaseConfigured()) {
+  try {
+    await apiRequest(`/api/entries/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ weight }),
+    });
     const current = loadLocalEntries();
     saveLocalEntries(current.map((e) => (e.id === id ? { ...e, weight } : e)));
-    return;
-  }
-
-  const { url, key } = getSupabaseConfig();
-  const client = createSupabaseClient(url, key);
-
-  const { error } = await client.from("weight_entries").update({ weight }).eq("id", id);
-
-  if (error) {
-    console.error("updateEntryWeight error:", error);
-    throw error;
+  } catch (err) {
+    console.error("updateEntryWeight error:", err);
+    const current = loadLocalEntries();
+    saveLocalEntries(current.map((e) => (e.id === id ? { ...e, weight } : e)));
+    throw err;
   }
 }
 
+// ========== Профиль ==========
+
 export async function loadProfile(): Promise<Profile> {
-  if (!isSupabaseConfigured()) return loadLocalProfile();
-
-  const { url, key } = getSupabaseConfig();
-  const client = createSupabaseClient(url, key);
-
-  const { data, error } = await client
-    .from("profile")
-    .select("*")
-    .eq("id", "main")
-    .single();
-
-  if (error || !data) {
-    console.error("loadProfile error:", error);
+  try {
+    const row = await apiRequest<{
+      height_cm: number;
+      age: number;
+      sex: "female" | "male";
+      target: number | null;
+    }>("/api/profile");
+    return {
+      heightCm: row.height_cm,
+      age: row.age,
+      sex: row.sex,
+      target: row.target != null ? Number(row.target) : null,
+    };
+  } catch (err) {
+    console.warn("API недоступен, использую localStorage:", err);
     return loadLocalProfile();
   }
-
-  return toProfile(data as DbProfile);
 }
 
 export async function saveProfile(profile: Profile): Promise<void> {
-  if (!isSupabaseConfigured()) {
+  try {
+    await apiRequest("/api/profile", {
+      method: "PUT",
+      body: JSON.stringify({
+        height_cm: profile.heightCm,
+        age: profile.age,
+        sex: profile.sex,
+        target: profile.target,
+      }),
+    });
     saveLocalProfile(profile);
-    return;
-  }
-
-  const { url, key } = getSupabaseConfig();
-  const client = createSupabaseClient(url, key);
-
-  const { error } = await client
-    .from("profile")
-    .update({
-      height_cm: profile.heightCm,
-      age: profile.age,
-      sex: profile.sex,
-      target: profile.target,
-    })
-    .eq("id", "main");
-
-  if (error) {
-    console.error("saveProfile error:", error);
-    throw error;
+  } catch (err) {
+    console.error("saveProfile error:", err);
+    saveLocalProfile(profile);
+    throw err;
   }
 }
 
+// ========== Очистка ==========
+
 export async function clearAllData(): Promise<void> {
-  if (!isSupabaseConfigured()) {
-    saveLocalEntries([]);
-    saveLocalProfile({ ...defaultProfile });
-    return;
+  try {
+    await apiRequest("/api/clear", { method: "DELETE" });
+  } catch (err) {
+    console.error("clearAllData error:", err);
   }
+  saveLocalEntries([]);
+  saveLocalProfile({ ...defaultProfile });
+}
 
-  const { url, key } = getSupabaseConfig();
-  const client = createSupabaseClient(url, key);
+// ========== Инициализация БД ==========
 
-  await client.from("weight_entries").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await client
-    .from("profile")
-    .update({ height_cm: 170, age: 30, sex: "female", target: null })
-    .eq("id", "main");
+export async function initDatabase(): Promise<void> {
+  try {
+    await apiRequest("/api/init-db", { method: "POST" });
+    console.log("База данных инициализирована");
+  } catch (err) {
+    console.error("initDatabase error:", err);
+    throw err;
+  }
 }

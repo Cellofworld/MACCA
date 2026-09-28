@@ -1,6 +1,6 @@
 # Масса — дневник контроля веса
 
-Приложение для отслеживания веса с поддержкой PostgreSQL через Supabase.
+Приложение для отслеживания веса с хранением данных в PostgreSQL.
 
 ## Возможности
 
@@ -8,70 +8,157 @@
 - 🎯 Отслеживание прогресса к цели
 - 📈 Анализ темпа, ИМТ, прогноз достижения цели
 - 🔥 Серия взвешиваний подряд
-- 💾 Хранение данных в PostgreSQL (Supabase) или локально
+- 💾 Хранение данных в PostgreSQL
 - 📱 Полная адаптивность для мобильных устройств
 - ✨ Демо-данные для быстрого старта
 
-## Хранение данных
+## Архитектура
 
-### Локальное хранилище (по умолчанию)
+```
+┌─────────────┐      HTTP API      ┌──────────────┐      SQL       ┌────────────┐
+│  Frontend   │ ◄────────────────► │  Express.js  │ ◄────────────► │ PostgreSQL │
+│  (React)    │   /api/*           │  (server/)   │   node-pg      │  (your DB) │
+└─────────────┘                    └──────────────┘                └────────────┘
+```
 
-По умолчанию данные хранятся в `localStorage` браузера. Это работает сразу, без настройки.
+- **Фронтенд** — React + TypeScript + Tailwind CSS (собирается через Vite)
+- **Бэкенд** — Express.js сервер с REST API (`server/`)
+- **База данных** — PostgreSQL на вашем сервере
 
-### PostgreSQL через Supabase
+## Установка
 
-Для синхронизации с PostgreSQL:
+### 1. Настройка PostgreSQL
 
-1. **Создайте проект на [Supabase](https://supabase.com)** (бесплатно)
-
-2. **Выполните SQL-скрипт** в SQL Editor вашего проекта:
+Создайте базу данных и выполните SQL-скрипт для создания таблиц:
 
 ```sql
 -- Таблица записей веса
-create table if not exists public.weight_entries (
-  id uuid primary key default gen_random_uuid(),
-  date date not null unique,
-  weight numeric(5,2) not null check (weight > 0 and weight < 500),
-  note text,
-  created_at timestamptz default now()
+CREATE TABLE IF NOT EXISTS weight_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date DATE NOT NULL UNIQUE,
+  weight NUMERIC(5,2) NOT NULL CHECK (weight > 0 AND weight < 500),
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Профиль (одна строка)
-create table if not exists public.profile (
-  id text primary key default 'main' check (id = 'main'),
-  height_cm integer not null check (height_cm > 0 and height_cm < 300),
-  age integer not null check (age > 0 and age < 200),
-  sex text not null check (sex in ('female', 'male')),
-  target numeric(5,2)
+-- Профиль пользователя
+CREATE TABLE IF NOT EXISTS profile (
+  id TEXT PRIMARY KEY DEFAULT 'main' CHECK (id = 'main'),
+  height_cm INTEGER NOT NULL CHECK (height_cm > 0 AND height_cm < 300),
+  age INTEGER NOT NULL CHECK (age > 0 AND age < 200),
+  sex TEXT NOT NULL CHECK (sex IN ('female', 'male')),
+  target NUMERIC(5,2)
 );
 
 -- Начальная строка профиля
-insert into public.profile (id, height_cm, age, sex, target)
-values ('main', 170, 30, 'female', null)
-on conflict (id) do nothing;
+INSERT INTO profile (id, height_cm, age, sex, target)
+VALUES ('main', 170, 30, 'female', NULL)
+ON CONFLICT (id) DO NOTHING;
 
--- RLS: разрешаем всё для anon-ключа (для демо)
-alter table public.weight_entries enable row level security;
-alter table public.profile enable row level security;
-
-drop policy if exists "allow all entries" on public.weight_entries;
-drop policy if exists "allow all profile" on public.profile;
-
-create policy "allow all entries" on public.weight_entries
-  for all using (true) with check (true);
-
-create policy "allow all profile" on public.profile
-  for all using (true) with check (true);
-
--- Индексы
-create index if not exists idx_entries_date on public.weight_entries(date);
+-- Индекс для быстрого поиска по дате
+CREATE INDEX IF NOT EXISTS idx_entries_date ON weight_entries(date);
 ```
 
-3. **Скопируйте Project URL и anon public key** из Settings → API
+### 2. Конфигурация
 
-4. **В приложении** нажмите "База данных" в меню и вставьте URL и ключ
+Скопируйте `.env.example` в `.env` и заполните параметры подключения к вашей PostgreSQL:
 
-5. **Готово!** Данные теперь синхронизируются с PostgreSQL
+```bash
+cp .env.example .env
+```
+
+Отредактируйте `.env`:
+
+```env
+# PostgreSQL Configuration
+PG_HOST=localhost
+PG_PORT=5432
+PG_USER=postgres
+PG_PASSWORD=your_password_here
+PG_DATABASE=massa
+
+# Server Configuration
+PORT=3001
+```
+
+### 3. Установка зависимостей
+
+```bash
+# Фронтенд
+npm install
+
+# Бэкенд
+cd server
+npm install
+cd ..
+```
+
+### 4. Запуск
+
+```bash
+# Сборка фронтенда
+npm run build
+
+# Запуск сервера (из корня проекта)
+cd server
+npm start
+```
+
+Сервер будет доступен на `http://localhost:3001`
+
+### 5. Для разработки
+
+```bash
+# Терминал 1: фронтенд с hot-reload
+npm run dev
+
+# Терминал 2: бэкенд с автоперезагрузкой
+cd server
+npm run dev
+```
+
+## Структура проекта
+
+```
+.
+├── src/                    # Фронтенд (React)
+│   ├── components/         # UI-компоненты
+│   ├── lib/                # Утилиты и API-клиент
+│   ├── App.tsx             # Главный компонент
+│   └── main.tsx            # Точка входа
+├── server/                 # Бэкенд (Express)
+│   ├── index.js            # REST API
+│   ├── db.js               # Подключение к PostgreSQL
+│   └── package.json        # Зависимости сервера
+├── .env                    # Конфигурация (не в git)
+├── .env.example            # Пример конфигурации
+└── README.md
+```
+
+## API Endpoints
+
+### Записи веса
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/api/entries` | Получить все записи |
+| POST | `/api/entries` | Создать/обновить запись (upsert по дате) |
+| PATCH | `/api/entries/:id` | Обновить вес записи |
+| DELETE | `/api/entries/:id` | Удалить запись |
+
+### Профиль
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/api/profile` | Получить профиль |
+| PUT | `/api/profile` | Обновить профиль |
+
+### Утилиты
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| DELETE | `/api/clear` | Удалить все данные |
+| POST | `/api/init-db` | Инициализировать таблицы БД |
 
 ## Структура базы данных
 
@@ -89,34 +176,11 @@ create index if not exists idx_entries_date on public.weight_entries(date);
 - `sex` (text) — пол ('female' или 'male')
 - `target` (numeric) — целевой вес в кг
 
-## Безопасность
-
-- **Anon-ключ** — публичный ключ Supabase, его можно хранить в клиенте
-- **RLS (Row Level Security)** включен с политиками "allow all" для демонстрации
-- Для продакшена настройте политики по пользователю через Supabase Auth
-
 ## Технологии
 
-- React 18 + TypeScript
-- Vite
-- Tailwind CSS 4
-- Supabase (PostgreSQL)
-- Lucide React (иконки)
-
-## Разработка
-
-```bash
-npm install
-npm run dev
-```
-
-## Сборка
-
-```bash
-npm run build
-```
-
-Результат в `dist/` — статические файлы, готовые к деплою.
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS 4, Lucide React
+- **Backend**: Express.js, node-pg, CORS, dotenv
+- **Database**: PostgreSQL
 
 ## Лицензия
 

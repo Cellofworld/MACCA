@@ -3,7 +3,6 @@ import {
   Activity,
   CalendarDays,
   ChevronRight,
-  Database,
   Flame,
   Gauge,
   History as HistoryIcon,
@@ -40,14 +39,12 @@ import {
   upsertEntry,
   updateEntryWeight,
 } from "./lib/db";
-import { isSupabaseConfigured } from "./lib/supabase";
 import { ToastHost } from "./components/Toast";
 import { AnimatedNumber } from "./components/AnimatedNumber";
 import { WeightChart } from "./components/WeightChart";
 import { EntryForm } from "./components/EntryForm";
 import { HistoryList } from "./components/HistoryList";
 import { SettingsModal } from "./components/SettingsModal";
-import { DatabaseSettingsModal } from "./components/DatabaseSettingsModal";
 
 /* ---------- фирменный знак ---------- */
 
@@ -288,9 +285,7 @@ export default function App() {
   const [range, setRange] = useState<RangeKey>("30");
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [dbSettingsOpen, setDbSettingsOpen] = useState(false);
   const [focusTick, setFocusTick] = useState(0);
-  const [dbConnected, setDbConnected] = useState(false);
   const toastId = useRef(1);
 
   // Загрузка данных при монтировании
@@ -302,7 +297,6 @@ export default function App() {
       ]);
       setEntries(loadedEntries);
       setProfile(loadedProfile);
-      setDbConnected(isSupabaseConfigured());
     })();
   }, []);
 
@@ -514,16 +508,6 @@ export default function App() {
               <Settings className="h-4 w-4" />
               Параметры
             </button>
-            <button
-              onClick={() => setDbSettingsOpen(true)}
-              className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-bold text-fog transition-all hover:bg-mint hover:text-ink"
-            >
-              <Database className="h-4 w-4" />
-              База данных
-              {dbConnected && (
-                <span className="ml-auto h-2 w-2 rounded-full bg-lime" />
-              )}
-            </button>
           </nav>
 
           <div className="mt-auto space-y-3">
@@ -555,9 +539,7 @@ export default function App() {
               )}
             </div>
             <p className="px-2 text-[10px] leading-relaxed text-fog/70">
-              {dbConnected
-                ? "Данные синхронизируются с PostgreSQL через Supabase."
-                : "Данные хранятся только в этом браузере и никуда не отправляются."}
+              Данные хранятся в PostgreSQL на вашем сервере.
             </p>
           </div>
         </aside>
@@ -585,14 +567,6 @@ export default function App() {
                   <Flame className="h-4 w-4 text-amber" />
                   <span className="tnum text-xs font-bold text-ink">{stats.streak}</span>
                 </span>
-                {dbConnected && (
-                  <span
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-cream text-pine-700"
-                    title="Подключено к PostgreSQL"
-                  >
-                    <Database className="h-4 w-4" />
-                  </span>
-                )}
                 <button
                   onClick={() => setSettingsOpen(true)}
                   aria-label="Параметры"
@@ -909,10 +883,7 @@ export default function App() {
 
           <footer className="mt-12 flex flex-col gap-1 border-t border-line pt-4 text-[11px] text-fog sm:flex-row sm:items-center sm:justify-between">
             <p className="font-display font-medium tracking-wide">МАССА · дневник контроля веса</p>
-            <p>
-              {dbConnected ? "PostgreSQL · Supabase" : "данные хранятся локально"} · сегодня{" "}
-              {fmtFull(todayISO())}
-            </p>
+            <p>PostgreSQL · сегодня {fmtFull(todayISO())}</p>
           </footer>
         </main>
       </div>
@@ -923,13 +894,6 @@ export default function App() {
           onSave={handleSaveProfile}
           onClearAll={handleClearAll}
           onClose={() => setSettingsOpen(false)}
-        />
-      )}
-
-      {dbSettingsOpen && (
-        <DatabaseSettingsModal
-          onClose={() => setDbSettingsOpen(false)}
-          onConnected={() => setDbConnected(isSupabaseConfigured())}
         />
       )}
 
