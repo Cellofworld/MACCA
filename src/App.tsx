@@ -3,6 +3,7 @@ import {
   Activity,
   CalendarDays,
   ChevronRight,
+  Database,
   Flame,
   Gauge,
   History as HistoryIcon,
@@ -29,21 +30,24 @@ import {
   todayISO,
 } from "./lib/dates";
 import { computeStats, type Stats } from "./lib/stats";
+import { defaultProfile, makeDemoData, uid } from "./lib/store";
 import {
-  defaultProfile,
+  clearAllData,
+  deleteEntry,
   loadEntries,
   loadProfile,
-  makeDemoData,
-  saveEntries,
   saveProfile,
-  uid,
-} from "./lib/store";
+  upsertEntry,
+  updateEntryWeight,
+} from "./lib/db";
+import { isSupabaseConfigured } from "./lib/supabase";
 import { ToastHost } from "./components/Toast";
 import { AnimatedNumber } from "./components/AnimatedNumber";
 import { WeightChart } from "./components/WeightChart";
 import { EntryForm } from "./components/EntryForm";
 import { HistoryList } from "./components/HistoryList";
 import { SettingsModal } from "./components/SettingsModal";
+import { DatabaseSettingsModal } from "./components/DatabaseSettingsModal";
 
 /* ---------- фирменный знак ---------- */
 
@@ -273,17 +277,34 @@ function AnalysisCard({
 /* ---------- приложение ---------- */
 
 export default function App() {
-  const [entries, setEntries] = useState<WeightEntry[]>(() => loadEntries());
-  const [profile, setProfile] = useState<Profile>(() => loadProfile());
+  const [entries, setEntries] = useState<WeightEntry[]>([]);
+  const [profile, setProfile] = useState<Profile>({
+    heightCm: 170,
+    age: 30,
+    sex: "female",
+    target: null,
+  });
   const [view, setView] = useState<View>("overview");
   const [range, setRange] = useState<RangeKey>("30");
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [dbSettingsOpen, setDbSettingsOpen] = useState(false);
   const [focusTick, setFocusTick] = useState(0);
+  const [dbConnected, setDbConnected] = useState(false);
   const toastId = useRef(1);
 
-  useEffect(() => saveEntries(entries), [entries]);
-  useEffect(() => saveProfile(profile), [profile]);
+  // Загрузка данных при монтировании
+  useEffect(() => {
+    (async () => {
+      const [loadedEntries, loadedProfile] = await Promise.all([
+        loadEntries(),
+        loadProfile(),
+      ]);
+      setEntries(loadedEntries);
+      setProfile(loadedProfile);
+      setDbConnected(isSupabaseConfigured());
+    })();
+  }, []);
 
   // на мобильных при смене вкладки возвращаемся к началу экрана
   useEffect(() => {
@@ -320,72 +341,118 @@ export default function App() {
   }, []);
 
   const handleSubmit = useCallback(
-    (draft: { date: string; weight: number; note: string }) => {
+    async (draft: { date: string; weight: number; note: string }) => {
       const existing = entries.find((e) => e.date === draft.date);
-      setEntries((prev) => {
-        const rest = prev.filter((e) => e.date !== draft.date);
-        const next: WeightEntry = {
-          id: existing?.id ?? uid(),
-          date: draft.date,
-          weight: draft.weight,
-          note: draft.note || undefined,
-        };
-        return [...rest, next].sort((a, b) => a.date.localeCompare(b.date));
-      });
-      toast(
-        existing
-          ? `Запись за ${fmtDay(draft.date)} обновлена: ${fmtNum(draft.weight)} кг`
-          : `Записано ${fmtNum(draft.weight)} кг · ${fmtDay(draft.date)}`,
-        "success"
-      );
+      const next: WeightEntry = {
+        id: existing?.id ?? uid(),
+        date: draft.date,
+        weight: draft.weight,
+        note: draft.note || undefined,
+      };
+
+      try {
+        await upsertEntry(next);
+        setEntries((prev) => {
+          const rest = prev.filter((e) => e.date !== draft.date);
+          return [...rest, next].sort((a, b) => a.date.localeCompare(b.date));
+        });
+        toast(
+          existing
+            ? `Запись за ${fmtDay(draft.date)} обновлена: ${fmtNum(draft.weight)} кг`
+            : `Записано ${fmtNum(draft.weight)} кг · ${fmtDay(draft.date)}`,
+          "success"
+        );
+      } catch (err) {
+        toast("Ошибка при сохранении в базу данных", "error");
+        console.error(err);
+      }
     },
     [entries, toast]
   );
 
   const handleDelete = useCallback(
-    (entry: WeightEntry) => {
-      setEntries((prev) => prev.filter((e) => e.id !== entry.id));
-      toast(`Запись за ${fmtDay(entry.date)} удалена`, "info", {
-        label: "Вернуть",
-        onClick: () =>
-          setEntries((prev) =>
-            [...prev, entry].sort((a, b) => a.date.localeCompare(b.date))
-          ),
-      });
+    async (entry: WeightEntry) => {
+      try {
+        await deleteEntry(entry.id);
+        setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+        toast(`Запись за ${fmtDay(entry.date)} удалена`, "info", {
+          label: "Вернуть",
+          onClick: async () => {
+            await upsertEntry(entry);
+            setEntries((prev) =>
+              [...prev, entry].sort((a, b) => a.date.localeCompare(b.date))
+            );
+          },
+        });
+      } catch (err) {
+        toast("Ошибка при удалении из базы данных", "error");
+        console.error(err);
+      }
     },
     [toast]
   );
 
   const handleUpdate = useCallback(
-    (id: string, weight: number) => {
-      setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, weight } : e)));
-      toast(`Вес изменён на ${fmtNum(weight)} кг`, "success");
+    async (id: string, weight: number) => {
+      try {
+        await updateEntryWeight(id, weight);
+        setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, weight } : e)));
+        toast(`Вес изменён на ${fmtNum(weight)} кг`, "success");
+      } catch (err) {
+        toast("Ошибка при обновлении в базе данных", "error");
+        console.error(err);
+      }
     },
     [toast]
   );
 
   const handleSaveProfile = useCallback(
-    (p: Profile) => {
-      setProfile(p);
-      setSettingsOpen(false);
-      toast("Параметры сохранены", "success");
+    async (p: Profile) => {
+      try {
+        await saveProfile(p);
+        setProfile(p);
+        setSettingsOpen(false);
+        toast("Параметры сохранены", "success");
+      } catch (err) {
+        toast("Ошибка при сохранении параметров", "error");
+        console.error(err);
+      }
     },
     [toast]
   );
 
-  const handleClearAll = useCallback(() => {
-    setEntries([]);
-    setProfile({ ...defaultProfile });
-    setSettingsOpen(false);
-    toast("Все данные удалены", "info");
+  const handleClearAll = useCallback(async () => {
+    try {
+      await clearAllData();
+      setEntries([]);
+      setProfile({ ...defaultProfile });
+      setSettingsOpen(false);
+      toast("Все данные удалены", "info");
+    } catch (err) {
+      toast("Ошибка при очистке данных", "error");
+      console.error(err);
+    }
   }, [toast]);
 
-  const handleDemo = useCallback(() => {
+  const handleDemo = useCallback(async () => {
     const demo = makeDemoData();
-    setEntries(demo.entries);
-    setProfile(demo.profile);
-    setView("overview");
-    toast("Демо-данные загружены — можно изучать", "success");
+    try {
+      // Сохраняем все записи демо в БД
+      for (const entry of demo.entries) {
+        await upsertEntry(entry);
+      }
+      await saveProfile(demo.profile);
+      setEntries(demo.entries);
+      setProfile(demo.profile);
+      setView("overview");
+      toast("Демо-данные загружены — можно изучать", "success");
+    } catch (err) {
+      // Если БД не настроена, просто загружаем в состояние
+      setEntries(demo.entries);
+      setProfile(demo.profile);
+      setView("overview");
+      toast("Демо-данные загружены (локально)", "info");
+    }
   }, [toast]);
 
   const goodWhenDown = !(
@@ -447,6 +514,16 @@ export default function App() {
               <Settings className="h-4 w-4" />
               Параметры
             </button>
+            <button
+              onClick={() => setDbSettingsOpen(true)}
+              className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-bold text-fog transition-all hover:bg-mint hover:text-ink"
+            >
+              <Database className="h-4 w-4" />
+              База данных
+              {dbConnected && (
+                <span className="ml-auto h-2 w-2 rounded-full bg-lime" />
+              )}
+            </button>
           </nav>
 
           <div className="mt-auto space-y-3">
@@ -478,7 +555,9 @@ export default function App() {
               )}
             </div>
             <p className="px-2 text-[10px] leading-relaxed text-fog/70">
-              Данные хранятся только в этом браузере и никуда не отправляются.
+              {dbConnected
+                ? "Данные синхронизируются с PostgreSQL через Supabase."
+                : "Данные хранятся только в этом браузере и никуда не отправляются."}
             </p>
           </div>
         </aside>
@@ -506,6 +585,14 @@ export default function App() {
                   <Flame className="h-4 w-4 text-amber" />
                   <span className="tnum text-xs font-bold text-ink">{stats.streak}</span>
                 </span>
+                {dbConnected && (
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-cream text-pine-700"
+                    title="Подключено к PostgreSQL"
+                  >
+                    <Database className="h-4 w-4" />
+                  </span>
+                )}
                 <button
                   onClick={() => setSettingsOpen(true)}
                   aria-label="Параметры"
@@ -822,7 +909,10 @@ export default function App() {
 
           <footer className="mt-12 flex flex-col gap-1 border-t border-line pt-4 text-[11px] text-fog sm:flex-row sm:items-center sm:justify-between">
             <p className="font-display font-medium tracking-wide">МАССА · дневник контроля веса</p>
-            <p>данные хранятся локально в вашем браузере · сегодня {fmtFull(todayISO())}</p>
+            <p>
+              {dbConnected ? "PostgreSQL · Supabase" : "данные хранятся локально"} · сегодня{" "}
+              {fmtFull(todayISO())}
+            </p>
           </footer>
         </main>
       </div>
@@ -833,6 +923,13 @@ export default function App() {
           onSave={handleSaveProfile}
           onClearAll={handleClearAll}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {dbSettingsOpen && (
+        <DatabaseSettingsModal
+          onClose={() => setDbSettingsOpen(false)}
+          onConnected={() => setDbConnected(isSupabaseConfigured())}
         />
       )}
 
