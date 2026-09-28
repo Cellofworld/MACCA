@@ -675,7 +675,7 @@ export default function App() {
                           />
                           <span className="font-display text-xl font-medium text-cream/50">кг</span>
                         </div>
-                        <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
                           <HeroChip
                             label="К прошлому разу"
                             value={
@@ -699,6 +699,32 @@ export default function App() {
                             }
                             tone={deltaTone(stats.weeklyRate)}
                           />
+                          <HeroChip
+                            label="Серия дней"
+                            value={`${stats.streak} ${
+                              stats.streak === 1 ? "день" : stats.streak < 5 ? "дня" : "дней"
+                            }`}
+                            tone={stats.streak > 0 ? "good" : "neutral"}
+                          />
+                        </div>
+
+                        {/* Дополнительная информация */}
+                        <div className="mt-4 flex flex-wrap gap-3 text-xs text-cream/70">
+                          {stats.bmi && (
+                            <span className="rounded-lg bg-cream/10 px-3 py-1.5">
+                              ИМТ: <strong className="text-cream">{fmtNum(stats.bmi.value)}</strong>
+                            </span>
+                          )}
+                          {stats.min != null && stats.max != null && (
+                            <span className="rounded-lg bg-cream/10 px-3 py-1.5">
+                              Диапазон: <strong className="text-cream">{fmtNum(stats.min)}-{fmtNum(stats.max)} кг</strong>
+                            </span>
+                          )}
+                          {stats.etaISO && (
+                            <span className="rounded-lg bg-cream/10 px-3 py-1.5">
+                              Цель: <strong className="text-cream">{fmtDay(stats.etaISO)}</strong>
+                            </span>
+                          )}
                         </div>
                       </>
                     ) : (
@@ -833,18 +859,71 @@ export default function App() {
                   bmi={stats.bmi?.value ?? null}
                   weeklyRate={stats.weeklyRate}
                 />
-                {stats.latest && (
-                  <WeeklyMenu
-                    weight={stats.latest.weight}
-                    heightCm={profile.heightCm}
-                    age={profile.age}
-                    sex={profile.sex}
-                    target={profile.target}
-                  />
-                )}
+                <WeeklyMenu
+                  weight={stats.latest?.weight ?? 70}
+                  heightCm={profile.heightCm}
+                  age={profile.age}
+                  sex={profile.sex}
+                  target={profile.target}
+                />
               </div>
 
               <Exercises />
+
+              {/* Советы по здоровью */}
+              <section className="reveal rounded-xl border border-line bg-cream shadow-card">
+                <header className="border-b border-line px-5 py-4">
+                  <h2 className="font-display text-sm font-semibold tracking-wide text-ink">
+                    Полезные привычки
+                  </h2>
+                  <p className="mt-0.5 text-xs text-fog">
+                    Маленькие шаги к большим результатам
+                  </p>
+                </header>
+                <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    {
+                      emoji: "💧",
+                      title: "Пейте воду",
+                      desc: "1.5-2 литра в день. Стакан воды за 30 минут до еды ускоряет метаболизм на 30%.",
+                    },
+                    {
+                      emoji: "🌙",
+                      title: "Спите 7-9 часов",
+                      desc: "Недосып повышает уровень грелина — гормона голода. Ложитесь до 23:00.",
+                    },
+                    {
+                      emoji: "🚶",
+                      title: "10 000 шагов",
+                      desc: "Используйте лестницу вместо лифта. Паркуйтесь дальше. Гуляйте во время обеденного перерыва.",
+                    },
+                    {
+                      emoji: "🥗",
+                      title: "Больше овощей",
+                      desc: "Заполняйте половину тарелки овощами. Они дают объём и клетчатку при минимуме калорий.",
+                    },
+                    {
+                      emoji: "⏰",
+                      title: "Режим питания",
+                      desc: "Ешьте в одно и то же время. Избегайте перекусов между приёмами пищи.",
+                    },
+                    {
+                      emoji: "🧘",
+                      title: "Управляйте стрессом",
+                      desc: "Стресс повышает кортизол, который способствует накоплению жира. Медитируйте, гуляйте, дышите.",
+                    },
+                  ].map((tip) => (
+                    <div
+                      key={tip.title}
+                      className="rounded-lg border border-line/50 bg-paper/50 p-4 transition-colors hover:border-line hover:bg-paper"
+                    >
+                      <div className="mb-2 text-2xl">{tip.emoji}</div>
+                      <p className="text-sm font-bold text-ink">{tip.title}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-fog">{tip.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           ) : (
             /* -------- история -------- */
