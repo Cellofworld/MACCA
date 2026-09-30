@@ -1,0 +1,150 @@
+/* ========== CSS Variables ========== */
+:root {
+  /* Colors */
+  --color-paper: #f2f1e8;
+  --color-cream: #fbfaf3;
+  --color-ink: #1c2a23;
+  --color-fog: #67786d;
+  --color-line: #e0dfd0;
+  
+  --color-pine-950: #0a1e18;
+  --color-pine-900: #0e2a22;
+  --color-pine-800: #124033;
+  --color-pine-700: #0f5b49;
+  --color-pine-600: #177757;
+  --color-pine-500: #1f9268;
+  
+  --color-mint: #e4efe2;
+  --color-lime: #c9f35b;
+  --color-lime-deep: #8fbf26;
+  --color-coral: #e4572e;
+  --color-amber: #e8a13c;
+  
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgb(28 42 35 / 0.05), 0 10px 28px -14px rgb(28 42 35 / 0.2);
+  --shadow-pop: 0 18px 50px -16px rgb(10 30 24 / 0.45);
+  
+  /* Fonts */
+  --font-display: "Unbounded", sans-serif;
+  --font-body: "Golos Text", "Segoe UI", sans-serif;
+}
+
+/* ========== Reset & Base ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image:
+    radial-gradient(1100px 560px at 88% -8%, rgb(201 243 91 / 0.16), transparent 62%),
+    radial-gradient(900px 520px at -12% 24%, rgb(31 146 104 / 0.11), transparent 58%),
+    linear-gradient(to right, rgb(28 42 35 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(28 42 35 / 0.035) 1px, transparent 1px);
+  background-size: auto, auto, 34px 34px, 34px 34px;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--color-lime);
+  color: var(--color-pine-950);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c6c5b3 transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-pine-600);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ========== Utilities ========== */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========== Animations ========== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shakeX {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(1); opacity: 0.75; }
+  70% { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.reveal {
+  animation: fadeUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pop {
+  animation: popIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.shake {
+  animation: shakeX 0.4s ease both;
+}
+
+.toast-in {
+  animation: toastIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease both;
+}
+
+.live-dot {
+  animation: breathe 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
