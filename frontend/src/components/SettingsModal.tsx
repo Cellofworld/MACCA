@@ -54,13 +54,9 @@ export function SettingsModal({
     });
   };
 
-  const field =
-    "mt-1.5 w-full rounded-lg border border-line bg-paper/70 px-3 py-2.5 text-sm font-medium text-ink transition focus:border-pine-600 focus:bg-cream focus:outline-none";
-  const label = "text-[11px] font-bold tracking-[0.14em] text-fog uppercase";
-
   return (
     <div
-      className="fade-in fixed inset-0 z-50 flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-[3px] sm:items-center sm:pb-4 bg-pine-950/55"
+      className="modal-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -68,22 +64,18 @@ export function SettingsModal({
       aria-modal="true"
       aria-label="Настройки"
     >
-      <div className="pop max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-line bg-cream shadow-pop">
-        <header className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="font-display text-base font-semibold text-ink">Параметры и цель</h2>
-          <button
-            onClick={onClose}
-            aria-label="Закрыть"
-            className="rounded-lg p-2 text-fog transition hover:bg-paper hover:text-ink active:scale-90"
-          >
+      <div className="modal-content">
+        <header className="modal-header">
+          <h2 className="card-title">Параметры и цель</h2>
+          <button onClick={onClose} aria-label="Закрыть" className="modal-close">
             <X className="h-4 w-4" />
           </button>
         </header>
 
-        <form onSubmit={submit} className="space-y-4 px-6 py-5">
+        <form onSubmit={submit} className="modal-body">
           <div>
-            <span className={label}>Пол</span>
-            <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-lg border border-line bg-paper p-1">
+            <span className="input-label">Пол</span>
+            <div className="settings-sex-group">
               {(
                 [
                   ["female", "Женский"],
@@ -94,11 +86,7 @@ export function SettingsModal({
                   key={key}
                   type="button"
                   onClick={() => setSex(key)}
-                  className={`rounded-md py-2 text-sm font-bold transition-all ${
-                    sex === key
-                      ? "bg-pine-900 text-lime shadow-card"
-                      : "text-fog hover:text-ink"
-                  }`}
+                  className={`settings-sex-btn ${sex === key ? "active" : ""}`}
                 >
                   {text}
                 </button>
@@ -106,9 +94,9 @@ export function SettingsModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="settings-row">
             <div>
-              <label htmlFor="set-height" className={label}>
+              <label htmlFor="set-height" className="input-label">
                 Рост, см
               </label>
               <input
@@ -116,14 +104,14 @@ export function SettingsModal({
                 inputMode="decimal"
                 value={height}
                 onChange={(e) => setHeight(e.target.value.replace(/[^\d.,]/g, ""))}
-                className={`${field} ${errors.height ? "border-coral" : ""}`}
+                className={`input mt-1 ${errors.height ? "border-coral" : ""}`}
               />
               {errors.height && (
-                <p className="mt-1 text-[11px] font-semibold text-coral">{errors.height}</p>
+                <p className="settings-error">{errors.height}</p>
               )}
             </div>
             <div>
-              <label htmlFor="set-age" className={label}>
+              <label htmlFor="set-age" className="input-label">
                 Возраст
               </label>
               <input
@@ -131,16 +119,16 @@ export function SettingsModal({
                 inputMode="numeric"
                 value={age}
                 onChange={(e) => setAge(e.target.value.replace(/[^\d]/g, ""))}
-                className={`${field} ${errors.age ? "border-coral" : ""}`}
+                className={`input mt-1 ${errors.age ? "border-coral" : ""}`}
               />
               {errors.age && (
-                <p className="mt-1 text-[11px] font-semibold text-coral">{errors.age}</p>
+                <p className="settings-error">{errors.age}</p>
               )}
             </div>
           </div>
 
           <div>
-            <label htmlFor="set-target" className={label}>
+            <label htmlFor="set-target" className="input-label">
               Целевой вес, кг
             </label>
             <input
@@ -149,58 +137,42 @@ export function SettingsModal({
               value={target}
               placeholder="например: 65,0 — пусто, если цели нет"
               onChange={(e) => setTarget(e.target.value.replace(/[^\d.,]/g, ""))}
-              className={`${field} ${errors.target ? "border-coral" : ""}`}
+              className={`input mt-1 ${errors.target ? "border-coral" : ""}`}
             />
             {errors.target ? (
-              <p className="mt-1 text-[11px] font-semibold text-coral">{errors.target}</p>
+              <p className="settings-error">{errors.target}</p>
             ) : (
-              <p className="mt-1 text-[11px] text-fog">
+              <p className="settings-hint">
                 По цели строятся прогресс-кольцо, линия на графике и прогноз даты.
               </p>
             )}
           </div>
 
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-xl border border-line py-2.5 text-sm font-bold text-fog transition hover:bg-paper hover:text-ink active:scale-[0.98]"
-            >
+          <div className="settings-actions">
+            <button type="button" onClick={onClose} className="btn btn-secondary btn-md flex-1">
               Отмена
             </button>
-            <button
-              type="submit"
-              className="flex-1 rounded-xl bg-pine-700 py-2.5 text-sm font-bold text-cream transition hover:bg-pine-800 active:scale-[0.98]"
-            >
+            <button type="submit" className="btn btn-primary btn-md flex-1">
               Сохранить
             </button>
           </div>
         </form>
 
-        <footer className="border-t border-line px-6 py-4">
+        <footer className="modal-footer">
           {confirming ? (
-            <div className="flex items-center gap-2">
-              <p className="flex-1 text-xs font-semibold text-coral">
+            <div className="settings-confirm">
+              <p className="settings-confirm-text">
                 Удалить все записи и цель безвозвратно?
               </p>
-              <button
-                onClick={onClearAll}
-                className="rounded-lg bg-coral px-3 py-2 text-xs font-bold text-cream transition hover:brightness-95 active:scale-95"
-              >
+              <button onClick={onClearAll} className="btn btn-sm flex-1" style={{ background: "var(--color-coral)", color: "var(--color-cream)" }}>
                 Да, удалить
               </button>
-              <button
-                onClick={() => setConfirming(false)}
-                className="rounded-lg border border-line px-3 py-2 text-xs font-bold text-fog transition hover:text-ink active:scale-95"
-              >
+              <button onClick={() => setConfirming(false)} className="btn btn-secondary btn-sm flex-1">
                 Отмена
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setConfirming(true)}
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-bold text-fog transition hover:bg-coral/10 hover:text-coral active:scale-95"
-            >
+            <button onClick={() => setConfirming(true)} className="settings-clear-btn">
               <Trash2 className="h-3.5 w-3.5" />
               Удалить все данные
             </button>

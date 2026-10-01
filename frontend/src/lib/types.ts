@@ -1,8 +1,6 @@
 export interface WeightEntry {
   id: string;
-  /** ISO-дата yyyy-mm-dd (локальная) */
   date: string;
-  /** вес в кг */
   weight: number;
   note?: string;
 }
@@ -13,7 +11,6 @@ export interface Profile {
   heightCm: number;
   age: number;
   sex: Sex;
-  /** целевой вес в кг, null — цель не задана */
   target: number | null;
 }
 
