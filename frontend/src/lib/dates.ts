@@ -55,10 +55,12 @@ export function dayNum(iso: string): number {
 }
 
 export function fmtNum(n: number, digits = 1): string {
+  if (!Number.isFinite(n)) return "—";
   return n.toFixed(digits).replace(".", ",");
 }
 
 export function fmtSigned(n: number, digits = 1): string {
+  if (!Number.isFinite(n)) return "—";
   const sign = n > 0 ? "+" : n < 0 ? "−" : "±";
   return `${sign}${fmtNum(Math.abs(n), digits)}`;
 }

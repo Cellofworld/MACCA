@@ -4,7 +4,7 @@ import type { WeightEntry } from "../lib/types";
 import { dayNum, fmtMonth, fmtNum, fmtSigned, fmtWeekday } from "../lib/dates";
 
 function DeltaChip({ delta }: { delta: number | null }) {
-  if (delta == null) {
+  if (delta == null || !Number.isFinite(delta)) {
     return <span className="history-delta-chip start">старт</span>;
   }
   const down = delta < -0.001;
@@ -35,7 +35,7 @@ function Row({
   const [err, setErr] = useState(false);
 
   const startEdit = () => {
-    setDraft(fmtNum(entry.weight));
+    setDraft(Number.isFinite(entry.weight) ? fmtNum(entry.weight) : "");
     setEditing(true);
     setErr(false);
   };
@@ -46,8 +46,11 @@ function Row({
       setErr(true);
       return;
     }
-    onUpdate(entry.id, Math.round(n * 10) / 10);
-    setEditing(false);
+    const rounded = Math.round(n * 10) / 10;
+    if (Number.isFinite(rounded)) {
+      onUpdate(entry.id, rounded);
+      setEditing(false);
+    }
   };
 
   return (
@@ -90,7 +93,7 @@ function Row({
           </span>
         ) : (
           <p className="history-weight">
-            {fmtNum(entry.weight)}
+            {Number.isFinite(entry.weight) ? fmtNum(entry.weight) : "—"}
             <span className="history-weight-unit">кг</span>
           </p>
         )}
