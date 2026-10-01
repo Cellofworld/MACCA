@@ -6,7 +6,17 @@ export function toISO(d: Date): string {
 }
 
 export function parseISO(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
+  if (!iso || typeof iso !== 'string') {
+    return new Date(NaN);
+  }
+  const parts = iso.split("-");
+  if (parts.length !== 3) {
+    return new Date(NaN);
+  }
+  const [y, m, d] = parts.map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+    return new Date(NaN);
+  }
   return new Date(y, m - 1, d);
 }
 
@@ -27,13 +37,17 @@ export function addDaysISO(iso: string, n: number): string {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function fmtDay(iso: string): string {
-  return parseISO(iso)
+  const date = parseISO(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date
     .toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
     .replace(/\./g, "");
 }
 
 export function fmtFull(iso: string): string {
-  return parseISO(iso).toLocaleDateString("ru-RU", {
+  const date = parseISO(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("ru-RU", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -41,17 +55,21 @@ export function fmtFull(iso: string): string {
 }
 
 export function fmtWeekday(iso: string): string {
-  return cap(parseISO(iso).toLocaleDateString("ru-RU", { weekday: "short" }));
+  const date = parseISO(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return cap(date.toLocaleDateString("ru-RU", { weekday: "short" }));
 }
 
 export function fmtMonth(iso: string): string {
-  return cap(
-    parseISO(iso).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
-  );
+  const date = parseISO(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return cap(date.toLocaleDateString("ru-RU", { month: "long", year: "numeric" }));
 }
 
 export function dayNum(iso: string): number {
-  return parseISO(iso).getDate();
+  const date = parseISO(iso);
+  const day = date.getDate();
+  return Number.isFinite(day) ? day : 0;
 }
 
 export function fmtNum(n: number, digits = 1): string {

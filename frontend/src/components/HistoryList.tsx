@@ -57,7 +57,7 @@ function Row({
     <li className="history-row">
       <div className="history-row-main">
         <div className="history-date">
-          <p className="tnum font-bold">{dayNum(entry.date)}</p>
+          <p className="tnum font-bold">{String(dayNum(entry.date))}</p>
           <p className="text-xs text-fog">{fmtWeekday(entry.date)}</p>
         </div>
 
