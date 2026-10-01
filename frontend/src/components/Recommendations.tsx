@@ -45,7 +45,6 @@ export function Recommendations({
     },
   ];
 
-  // Добавляем специфические рекомендации на основе ИМТ
   if (bmi != null) {
     if (bmi >= 25 && bmi < 30) {
       recommendations.push({
@@ -66,7 +65,6 @@ export function Recommendations({
     }
   }
 
-  // Рекомендация на основе темпа
   if (weeklyRate != null) {
     if (weeklyRate < -1) {
       recommendations.push({
@@ -88,27 +86,20 @@ export function Recommendations({
   }
 
   return (
-    <section className="reveal rounded-xl border border-line bg-cream shadow-card">
-      <header className="border-b border-line px-5 py-4">
-        <h2 className="font-display text-sm font-semibold tracking-wide text-ink">
-          Рекомендации для вас
-        </h2>
-        <p className="mt-0.5 text-xs text-fog">Персональные советы на основе ваших данных</p>
+    <section className="card reveal">
+      <header className="card-header">
+        <div>
+          <h2 className="card-title">Рекомендации для вас</h2>
+          <p className="card-subtitle">Персональные советы на основе ваших данных</p>
+        </div>
       </header>
-      <div className="grid gap-3 p-5 sm:grid-cols-2">
+      <div className="recs-grid">
         {recommendations.map((rec) => (
-          <div
-            key={rec.title}
-            className="flex gap-3 rounded-lg border border-line/50 bg-paper/50 p-3 transition-colors hover:border-line hover:bg-paper"
-          >
-            <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${rec.color}`}
-            >
-              {rec.icon}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-ink">{rec.title}</p>
-              <p className="mt-1 text-xs leading-relaxed text-fog">{rec.description}</p>
+          <div key={rec.title} className="rec-card">
+            <span className={`icon icon-md ${rec.color}`}>{rec.icon}</span>
+            <div className="rec-content">
+              <p className="font-bold text-sm">{rec.title}</p>
+              <p className="text-xs text-fog mt-1 leading-relaxed">{rec.description}</p>
             </div>
           </div>
         ))}

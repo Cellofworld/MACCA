@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LineChart, MousePointerClick } from "lucide-react";
 import type { RangeKey, WeightEntry } from "../lib/types";
 import {
@@ -21,7 +21,7 @@ const RANGES: { key: RangeKey; label: string }[] = [
 function useMeasure<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
   const [w, setW] = useState(0);
-  useLayoutEffect(() => {
+  useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver((e) => setW(e[0].contentRect.width));
@@ -58,7 +58,6 @@ export function WeightChart({
   onRangeChange,
   onDemo,
 }: {
-  /** отсортированы по возрастанию даты */
   entries: WeightEntry[];
   target: number | null;
   range: RangeKey;
@@ -69,13 +68,13 @@ export function WeightChart({
   const width = Math.floor(rawWidth);
   const [hover, setHover] = useState<number | null>(null);
 
-  const visible = useMemo(() => {
+  const visible = (() => {
     if (range === "all") return entries;
     const cutoff = daysAgoISO(Number(range));
     return entries.filter((e) => e.date >= cutoff);
-  }, [entries, range]);
+  })();
 
-  const geom = useMemo(() => {
+  const geom = (() => {
     if (visible.length === 0 || width < 200) return null;
     const ws = visible.map((e) => e.weight);
     let min = Math.min(...ws);
@@ -120,7 +119,7 @@ export function WeightChart({
             }));
 
     return { pts, y, ticks, yDigits, xLabels, iw, ih };
-  }, [visible, width, target]);
+  })();
 
   const linePath = geom ? smoothPath(geom.pts) : "";
   const areaPath =
@@ -150,24 +149,20 @@ export function WeightChart({
     setHover(best);
   };
 
-  const chartKey = `${range}-${visible.length}-${visible[visible.length - 1]?.date ?? ""}`;
-
   return (
-    <section className="reveal d1 overflow-hidden rounded-xl border border-line bg-cream shadow-card">
-      <header className="flex flex-col gap-3 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
-        <div className="min-w-0">
-          <h2 className="font-display text-sm font-semibold tracking-wide text-ink">
-            Динамика веса
-          </h2>
-          <p className="mt-0.5 truncate text-xs text-fog">
+    <section className="card reveal">
+      <header className="chart-header">
+        <div>
+          <h2 className="card-title">Динамика веса</h2>
+          <p className="card-subtitle">
             {visible.length > 0
-              ? `${visible.length} ${plural(visible.length, "запись", "записи", "записей")} · ${
-                  fmtDay(visible[0].date)
-                } — ${fmtDay(visible[visible.length - 1].date)}`
+              ? `${visible.length} записей · ${fmtDay(visible[0].date)} — ${fmtDay(
+                  visible[visible.length - 1].date
+                )}`
               : "нет записей в периоде"}
           </p>
         </div>
-        <div className="flex shrink-0 rounded-lg border border-line bg-paper p-1">
+        <div className="chart-ranges">
           {RANGES.map((r) => (
             <button
               key={r.key}
@@ -175,11 +170,7 @@ export function WeightChart({
                 onRangeChange(r.key);
                 setHover(null);
               }}
-              className={`rounded-md px-2 py-1 text-[11px] font-bold transition-all sm:px-3 sm:py-1.5 sm:text-xs ${
-                range === r.key
-                  ? "bg-pine-900 text-lime shadow-card"
-                  : "text-fog hover:text-ink"
-              }`}
+              className={`chart-range-btn ${range === r.key ? "active" : ""}`}
             >
               {r.label}
             </button>
@@ -187,13 +178,13 @@ export function WeightChart({
         </div>
       </header>
 
-      <div ref={ref} className="relative min-w-0 px-2 pt-2 pb-1">
-        <div className="relative h-[260px] sm:h-[300px]">
+      <div ref={ref} className="chart-container">
+        <div className="chart-wrapper">
           {geom ? (
             <svg
               width={width}
               height={H}
-              className="block max-w-full"
+              className="chart-svg"
               onPointerMove={onMove}
               onPointerLeave={() => setHover(null)}
             >
@@ -204,7 +195,6 @@ export function WeightChart({
                 </linearGradient>
               </defs>
 
-              {/* сетка и подписи Y */}
               {geom.ticks.map((t, i) => (
                 <g key={i}>
                   <line
@@ -228,7 +218,6 @@ export function WeightChart({
                 </g>
               ))}
 
-              {/* подписи X */}
               {geom.xLabels.map((l, i) => (
                 <text
                   key={i}
@@ -243,7 +232,6 @@ export function WeightChart({
                 </text>
               ))}
 
-              {/* линия цели */}
               {goalY != null && target != null && (
                 <g>
                   <line
@@ -269,8 +257,8 @@ export function WeightChart({
                 </g>
               )}
 
-              <g key={chartKey}>
-                {areaPath && <path d={areaPath} fill="url(#areaFill)" className="chart-area" />}
+              <g>
+                {areaPath && <path d={areaPath} fill="url(#areaFill)" />}
                 {linePath && (
                   <path
                     d={linePath}
@@ -278,12 +266,9 @@ export function WeightChart({
                     stroke="var(--color-pine-600)"
                     strokeWidth="2.6"
                     strokeLinecap="round"
-                    pathLength={1}
-                    className="chart-line"
                   />
                 )}
 
-                {/* курсор */}
                 {hoverPt && hoverEntry && (
                   <g>
                     <line
@@ -305,88 +290,46 @@ export function WeightChart({
                     />
                   </g>
                 )}
-
-                {/* последняя точка с пульсом */}
-                {geom.pts.length > 0 && hover == null && (
-                  <g>
-                    <circle
-                      cx={geom.pts[geom.pts.length - 1].x}
-                      cy={geom.pts[geom.pts.length - 1].y}
-                      r="7"
-                      fill="var(--color-lime)"
-                      opacity="0.5"
-                      className="chart-pulse"
-                    />
-                    <circle
-                      cx={geom.pts[geom.pts.length - 1].x}
-                      cy={geom.pts[geom.pts.length - 1].y}
-                      r="4.5"
-                      fill="var(--color-lime)"
-                      stroke="var(--color-pine-700)"
-                      strokeWidth="2"
-                    />
-                  </g>
-                )}
               </g>
             </svg>
           ) : null}
 
-          {/* тултип */}
           {geom && hoverPt && hoverEntry && (
             <div
-              className="pointer-events-none absolute z-10 -translate-x-1/2 rounded-lg bg-pine-950 px-3 py-2 text-cream shadow-pop"
+              className="chart-tooltip"
               style={{
                 left: Math.max(90, Math.min(width - 90, hoverPt.x)),
                 top: Math.max(4, hoverPt.y - 68),
               }}
             >
-              <p className="tnum font-display text-sm font-semibold">
-                {fmtNum(hoverEntry.weight)} кг
-              </p>
-              <p className="mt-0.5 text-[11px] text-cream/60">
+              <p className="tnum font-bold">{fmtNum(hoverEntry.weight)} кг</p>
+              <p className="chart-tooltip-date">
                 {fmtWeekday(hoverEntry.date)}, {fmtFull(hoverEntry.date)}
               </p>
             </div>
           )}
 
-          {/* пустые состояния */}
           {visible.length === 0 && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-mint text-pine-700">
-                <LineChart className="h-6 w-6" />
+            <div className="chart-empty">
+              <span className="icon icon-md">
+                <LineChart />
               </span>
-              <p className="text-sm font-semibold text-ink">В этом периоде записей нет</p>
-              <p className="max-w-[260px] text-xs text-fog">
+              <p className="font-bold">В этом периоде записей нет</p>
+              <p className="text-xs text-fog">
                 {entries.length === 0
                   ? "Добавьте первое взвешивание — и здесь появится график."
                   : "Попробуйте расширить диапазон дат."}
               </p>
               {entries.length === 0 && (
-                <button
-                  onClick={onDemo}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-pine-900 px-3.5 py-2 text-xs font-bold text-lime transition hover:bg-pine-800 active:scale-95"
-                >
+                <button onClick={onDemo} className="btn btn-primary btn-sm mt-3">
                   <MousePointerClick className="h-3.5 w-3.5" />
                   Посмотреть с демо-данными
                 </button>
               )}
             </div>
           )}
-          {visible.length === 1 && (
-            <p className="absolute inset-x-0 bottom-10 text-center text-[11px] text-fog">
-              Добавьте ещё хотя бы одну запись, чтобы увидеть линию динамики
-            </p>
-          )}
         </div>
       </div>
     </section>
   );
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
-  return many;
 }

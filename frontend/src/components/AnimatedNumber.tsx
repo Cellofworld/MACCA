@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { fmtNum } from "../lib/dates";
 
-/** Число, плавно «переезжающее» к новому значению */
 export function AnimatedNumber({
   value,
   digits = 1,

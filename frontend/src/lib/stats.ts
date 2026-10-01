@@ -11,20 +11,13 @@ export interface Stats {
   latest: WeightEntry | null;
   prev: WeightEntry | null;
   first: WeightEntry | null;
-  /** изменение к прошлому взвешиванию */
   changeLast: number | null;
-  /** изменение с самой первой записи */
   totalChange: number | null;
-  /** средний темп, кг/неделю (лин. регрессия) */
   weeklyRate: number | null;
   bmi: BmiInfo | null;
-  /** серия дней подряд с записями (с сегодня или вчера) */
   streak: number;
-  /** прогресс к цели 0..1, null если цель не задана */
   progress: number | null;
-  /** сколько кг осталось до цели */
   remaining: number | null;
-  /** прогнозная дата достижения цели */
   etaISO: string | null;
   min: number | null;
   max: number | null;
@@ -37,7 +30,6 @@ function bmiCategory(v: number): { label: string; tone: "good" | "warn" | "bad" 
   return { label: "ожирение", tone: "bad" };
 }
 
-/** entries должны быть отсортированы по дате (возрастание) */
 export function computeStats(entries: WeightEntry[], profile: Profile): Stats {
   const latest = entries.length ? entries[entries.length - 1] : null;
   const prev = entries.length > 1 ? entries[entries.length - 2] : null;
@@ -46,7 +38,6 @@ export function computeStats(entries: WeightEntry[], profile: Profile): Stats {
   const changeLast = latest && prev ? latest.weight - prev.weight : null;
   const totalChange = latest && first ? latest.weight - first.weight : null;
 
-  // недельный темп через линейную регрессию
   let weeklyRate: number | null = null;
   if (entries.length >= 3 && first) {
     const t0 = parseISO(first.date).getTime();
@@ -70,7 +61,6 @@ export function computeStats(entries: WeightEntry[], profile: Profile): Stats {
     bmi = { value: v, ...bmiCategory(v) };
   }
 
-  // серия дней подряд
   const dates = new Set(entries.map((e) => e.date));
   let streak = 0;
   let cursor = todayISO();
@@ -80,7 +70,6 @@ export function computeStats(entries: WeightEntry[], profile: Profile): Stats {
     cursor = addDaysISO(cursor, -1);
   }
 
-  // цель
   let progress: number | null = null;
   let remaining: number | null = null;
   let etaISO: string | null = null;
