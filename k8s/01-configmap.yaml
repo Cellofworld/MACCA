@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: massa-config
+  namespace: massa
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  PG_HOST: "postgres"
+  PG_PORT: "5432"
+  PG_DATABASE: "massa"
