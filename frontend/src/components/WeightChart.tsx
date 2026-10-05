@@ -96,9 +96,23 @@ export function WeightChart({
     const t1 = parseISO(visible[visible.length - 1].date).getTime();
     const iw = width - PAD.l - PAD.r;
     const ih = H - PAD.t - PAD.b;
-    const x = (iso: string) =>
-      t1 === t0 ? PAD.l + iw / 2 : PAD.l + ((parseISO(iso).getTime() - t0) / (t1 - t0)) * iw;
-    const y = (w: number) => PAD.t + (1 - (w - min) / (max - min)) * ih;
+    
+    // Проверяем валидность вычислений
+    if (!Number.isFinite(iw) || iw <= 0 || !Number.isFinite(ih) || ih <= 0) {
+      return null;
+    }
+    
+    const x = (iso: string) => {
+      if (t1 === t0) return PAD.l + iw / 2;
+      const time = parseISO(iso).getTime();
+      const result = PAD.l + ((time - t0) / (t1 - t0)) * iw;
+      return Number.isFinite(result) ? result : PAD.l;
+    };
+    const y = (w: number) => {
+      if (max === min) return PAD.t + ih / 2;
+      const result = PAD.t + (1 - (w - min) / (max - min)) * ih;
+      return Number.isFinite(result) ? result : PAD.t;
+    };
     const pts = visible.map((e) => ({ x: x(e.date), y: y(e.weight) }));
 
     const span = max - min;
@@ -131,7 +145,11 @@ export function WeightChart({
 
   const goalY = geom && target != null ? geom.y(target) : null;
   const hoverEntry = hover != null ? visible[hover] : null;
-  const hoverPt = hover != null && geom ? geom.pts[hover] : null;
+  const hoverPt = hover != null && geom && geom.pts[hover] ? geom.pts[hover] : null;
+  
+  // Проверяем валидность координат
+  const isValidCoord = (v: number | null | undefined): v is number => 
+    v != null && Number.isFinite(v);
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!geom || visible.length === 0) return;
@@ -195,44 +213,51 @@ export function WeightChart({
                 </linearGradient>
               </defs>
 
-              {geom.ticks.map((t, i) => (
-                <g key={i}>
-                  <line
-                    x1={PAD.l}
-                    x2={width - PAD.r}
-                    y1={geom.y(t)}
-                    y2={geom.y(t)}
-                    stroke="var(--color-line)"
-                    strokeDasharray={i === 0 ? undefined : "3 5"}
-                  />
+              {geom.ticks.map((t, i) => {
+                const y = geom.y(t);
+                if (!isValidCoord(y)) return null;
+                return (
+                  <g key={i}>
+                    <line
+                      x1={PAD.l}
+                      x2={width - PAD.r}
+                      y1={y}
+                      y2={y}
+                      stroke="var(--color-line)"
+                      strokeDasharray={i === 0 ? undefined : "3 5"}
+                    />
+                    <text
+                      x={PAD.l - 8}
+                      y={y + 4}
+                      textAnchor="end"
+                      fontSize="11"
+                      fill="var(--color-fog)"
+                      className="tnum select-none"
+                    >
+                      {fmtNum(t, geom.yDigits)}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {geom.xLabels.map((l, i) => {
+                if (!isValidCoord(l.x)) return null;
+                return (
                   <text
-                    x={PAD.l - 8}
-                    y={geom.y(t) + 4}
-                    textAnchor="end"
+                    key={i}
+                    x={l.x}
+                    y={H - 10}
+                    textAnchor={i === 0 ? "start" : i === geom.xLabels.length - 1 ? "end" : "middle"}
                     fontSize="11"
                     fill="var(--color-fog)"
-                    className="tnum select-none"
+                    className="select-none"
                   >
-                    {fmtNum(t, geom.yDigits)}
+                    {l.label}
                   </text>
-                </g>
-              ))}
+                );
+              })}
 
-              {geom.xLabels.map((l, i) => (
-                <text
-                  key={i}
-                  x={l.x}
-                  y={H - 10}
-                  textAnchor={i === 0 ? "start" : i === geom.xLabels.length - 1 ? "end" : "middle"}
-                  fontSize="11"
-                  fill="var(--color-fog)"
-                  className="select-none"
-                >
-                  {l.label}
-                </text>
-              ))}
-
-              {goalY != null && target != null && (
+              {goalY != null && target != null && isValidCoord(goalY) && (
                 <g>
                   <line
                     x1={PAD.l}
@@ -269,7 +294,7 @@ export function WeightChart({
                   />
                 )}
 
-                {hoverPt && hoverEntry && (
+                {hoverPt && hoverEntry && isValidCoord(hoverPt.x) && isValidCoord(hoverPt.y) && (
                   <g>
                     <line
                       x1={hoverPt.x}
@@ -294,7 +319,7 @@ export function WeightChart({
             </svg>
           ) : null}
 
-          {geom && hoverPt && hoverEntry && (
+          {geom && hoverPt && hoverEntry && isValidCoord(hoverPt.x) && isValidCoord(hoverPt.y) && (
             <div
               className="chart-tooltip"
               style={{

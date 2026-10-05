@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: massa
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "massa"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: massa-secrets
+              key: PG_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: massa-secrets
+              key: PG_PASSWORD
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: init-sql
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+          initialDelaySeconds: 15
+          periodSeconds: 10
+      volumes:
+      - name: init-sql
+        configMap:
+          name: postgres-init
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: massa
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS weight_entries (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      date DATE NOT NULL UNIQUE,
+      weight NUMERIC(5,2) NOT NULL CHECK (weight > 0 AND weight < 500),
+      note TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS profile (
+      id TEXT PRIMARY KEY DEFAULT 'main' CHECK (id = 'main'),
+      height_cm INTEGER NOT NULL CHECK (height_cm > 0 AND height_cm < 300),
+      age INTEGER NOT NULL CHECK (age > 0 AND age < 200),
+      sex TEXT NOT NULL CHECK (sex IN ('female', 'male')),
+      target NUMERIC(5,2)
+    );
+    INSERT INTO profile (id, height_cm, age, sex, target)
+    VALUES ('main', 170, 30, 'female', NULL)
+    ON CONFLICT (id) DO NOTHING;
+    CREATE INDEX IF NOT EXISTS idx_entries_date ON weight_entries(date);
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: massa
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None

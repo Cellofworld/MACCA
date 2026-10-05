@@ -7,6 +7,22 @@
     "build": "cd frontend && npm run build",
     "preview": "cd frontend && npm run preview",
     "server": "cd backend && npm start",
-    "server:dev": "cd backend && npm run dev"
+    "server:dev": "cd backend && npm run dev",
+    "docker:build": "docker build -t massa-backend:latest ./backend && docker build -t massa-frontend:latest ./frontend",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "k8s:deploy": "./deploy.sh",
+    "k8s:undeploy": "./undeploy.sh"
+  },
+  "dependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
   }
 }

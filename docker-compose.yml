@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:16-alpine
+    container_name: massa-postgres
+    environment:
+      POSTGRES_DB: massa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - massa-network
+
+  # Backend API
+  backend:
+    build: ./backend
+    container_name: massa-backend
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=${PG_PASSWORD:-postgres}
+      - PG_DATABASE=massa
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - massa-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: massa-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - massa-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  massa-network:
+    driver: bridge

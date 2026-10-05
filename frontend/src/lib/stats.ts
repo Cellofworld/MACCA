@@ -35,8 +35,12 @@ export function computeStats(entries: WeightEntry[], profile: Profile): Stats {
   const prev = entries.length > 1 ? entries[entries.length - 2] : null;
   const first = entries.length ? entries[0] : null;
 
-  const changeLast = latest && prev ? latest.weight - prev.weight : null;
-  const totalChange = latest && first ? latest.weight - first.weight : null;
+  const changeLast = latest && prev && Number.isFinite(latest.weight) && Number.isFinite(prev.weight) 
+    ? latest.weight - prev.weight 
+    : null;
+  const totalChange = latest && first && Number.isFinite(latest.weight) && Number.isFinite(first.weight) 
+    ? latest.weight - first.weight 
+    : null;
 
   let weeklyRate: number | null = null;
   if (entries.length >= 3 && first) {
@@ -51,14 +55,21 @@ export function computeStats(entries: WeightEntry[], profile: Profile): Stats {
     const sxx = pts.reduce((s, p) => s + p.x * p.x, 0);
     const sxy = pts.reduce((s, p) => s + p.x * p.y, 0);
     const denom = n * sxx - sx * sx;
-    if (denom !== 0) weeklyRate = ((n * sxy - sx * sy) / denom) * 7;
+    if (denom !== 0) {
+      const rate = ((n * sxy - sx * sy) / denom) * 7;
+      if (Number.isFinite(rate)) {
+        weeklyRate = rate;
+      }
+    }
   }
 
   let bmi: BmiInfo | null = null;
-  if (latest && profile.heightCm > 0) {
+  if (latest && Number.isFinite(latest.weight) && profile.heightCm > 0) {
     const h = profile.heightCm / 100;
     const v = latest.weight / (h * h);
-    bmi = { value: v, ...bmiCategory(v) };
+    if (Number.isFinite(v)) {
+      bmi = { value: v, ...bmiCategory(v) };
+    }
   }
 
   const dates = new Set(entries.map((e) => e.date));
@@ -74,13 +85,13 @@ export function computeStats(entries: WeightEntry[], profile: Profile): Stats {
   let remaining: number | null = null;
   let etaISO: string | null = null;
   const target = profile.target;
-  if (target != null && latest && first && first.weight !== target) {
+  if (target != null && latest && first && Number.isFinite(latest.weight) && Number.isFinite(first.weight) && first.weight !== target) {
     remaining = latest.weight - target;
     const raw =
       target < first.weight
         ? (first.weight - latest.weight) / (first.weight - target)
         : (latest.weight - first.weight) / (target - first.weight);
-    progress = Math.min(1, Math.max(0, raw));
+    progress = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : null;
 
     if (weeklyRate != null && Math.abs(weeklyRate) > 0.01 && remaining !== 0) {
       const goodDirection =
@@ -94,7 +105,7 @@ export function computeStats(entries: WeightEntry[], profile: Profile): Stats {
     }
   }
 
-  const weights = entries.map((e) => e.weight);
+  const weights = entries.map((e) => e.weight).filter(Number.isFinite);
   return {
     latest,
     prev,
